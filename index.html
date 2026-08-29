@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>公开课福利【曲谱+回放】</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; font-family: "Microsoft YaHei", "SimHei", sans-serif; background: #f5f5f5; user-select: none; -webkit-user-select: none; }
+  .container { display: flex; width: 100vw; height: 100vh; height: 100dvh; --sb-w: 160px; position: relative; }
+
+  /* 左侧目录 */
+  .sidebar {
+    width: var(--sb-w); min-width: 100px; max-width: 360px;
+    height: 100vh; height: 100dvh; flex-shrink: 0;
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: #fff; display: flex; flex-direction: column; overflow: hidden;
+    z-index: 100; position: relative;
+  }
+  .sidebar-header {
+    padding: calc(var(--sb-w) * 0.1) calc(var(--sb-w) * 0.08) calc(var(--sb-w) * 0.06);
+    text-align: center; flex-shrink: 0;
+  }
+  .sidebar-header h2 {
+    font-size: calc(var(--sb-w) * 0.065); font-weight: 600;
+    letter-spacing: 0.5px; color: #e94560;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .sidebar-header p {
+    font-size: calc(var(--sb-w) * 0.07); color: rgba(255,255,255,0.45);
+    margin-top: 3px; letter-spacing: 1px;
+  }
+
+  .search-box {
+    padding: 0 calc(var(--sb-w) * 0.08) calc(var(--sb-w) * 0.05);
+    flex-shrink: 0;
+  }
+  .search-box input {
+    width: 100%; height: 30px; border: none; border-radius: 6px;
+    background: rgba(255,255,255,0.1); color: #fff;
+    padding: 0 10px; font-size: calc(var(--sb-w) * 0.08);
+    outline: none; transition: background 0.2s;
+  }
+  .search-box input::placeholder { color: rgba(255,255,255,0.35); }
+  .search-box input:focus { background: rgba(255,255,255,0.18); }
+
+  .song-list { flex: 1; overflow-y: auto; padding: 4px 0; -webkit-overflow-scrolling: touch; }
+
+  .singer-header {
+    padding: calc(var(--sb-w) * 0.06) calc(var(--sb-w) * 0.08) calc(var(--sb-w) * 0.03) calc(var(--sb-w) * 0.1);
+    font-size: calc(var(--sb-w) * 0.095); font-weight: 700;
+    color: rgba(255,255,255,0.85); letter-spacing: 0.5px;
+    cursor: pointer; display: flex; align-items: center; gap: 6px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    user-select: none;
+  }
+  .singer-header:first-child { border-top: none; }
+  .singer-header .arrow {
+    display: inline-block; width: 0; height: 0;
+    border-left: 5px solid rgba(255,255,255,0.5);
+    border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+    transition: transform 0.2s; flex-shrink: 0;
+  }
+  .singer-header.collapsed .arrow { transform: rotate(-90deg); }
+  .singer-header .singer-count {
+    font-size: calc(var(--sb-w) * 0.065); font-weight: 400;
+    color: rgba(255,255,255,0.35); margin-left: auto;
+  }
+  .singer-songs { overflow: hidden; transition: max-height 0.25s ease; }
+  .singer-songs.collapsed { max-height: 0 !important; }
+
+  .song-item {
+    padding: calc(var(--sb-w) * 0.05) calc(var(--sb-w) * 0.08) calc(var(--sb-w) * 0.05) calc(var(--sb-w) * 0.14);
+    cursor: pointer; transition: all 0.2s;
+    border-left: 3px solid transparent;
+    display: flex; align-items: baseline; gap: calc(var(--sb-w) * 0.04);
+  }
+  .song-item:hover { background: rgba(255,255,255,0.08); }
+  .song-item.active { background: rgba(233,69,96,0.15); border-left-color: #e94560; }
+  .song-item .si-date {
+    font-size: calc(var(--sb-w) * 0.07); color: rgba(255,255,255,0.35);
+    flex-shrink: 0; white-space: nowrap;
+  }
+  .song-item .si-singer {
+    font-size: calc(var(--sb-w) * 0.065); color: rgba(255,255,255,0.4);
+    flex-shrink: 0; white-space: nowrap; margin-right: 4px;
+  }
+  .song-item .si-name {
+    font-size: calc(var(--sb-w) * 0.09); font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .song-item.active .si-name { color: #fff; }
+  .no-result {
+    padding: 20px; text-align: center;
+    color: rgba(255,255,255,0.3); font-size: 12px;
+  }
+
+  .resizer {
+    width: 5px; flex-shrink: 0; cursor: col-resize;
+    background: rgba(255,255,255,0.08);
+    transition: background 0.2s; z-index: 20;
+  }
+  .resizer:hover, .resizer.dragging { background: #e94560; }
+
+  .content-wrapper {
+    flex: 1; display: flex; flex-direction: column; height: 100vh; height: 100dvh; position: relative; background: #e8e8e8;
+    min-width: 0;
+  }
+  .content {
+    flex: 1; overflow: hidden; position: relative; cursor: grab;
+  }
+  .content.dragging { cursor: grabbing; }
+  .content.annotate { cursor: crosshair; }
+  .content.cover { cursor: crosshair; }
+
+  .menu-btn {
+    display: none; position: absolute; top: 8px; left: 8px; z-index: 21;
+    height: 36px; padding: 0 16px; border: none; border-radius: 18px;
+    background: rgba(0,0,0,0.6); color: #fff; font-size: 15px; font-weight: 600;
+    cursor: pointer; align-items: center; justify-content: center; gap: 5px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .menu-btn:active { background: #e94560; }
+  .mobile-replay-btn {
+    display: none; position: absolute; top: 8px; left: 92px; z-index: 21;
+    height: 36px; padding: 0 10px; border: none; border-radius: 18px;
+    background: rgba(233,69,96,0.85); color: #fff; font-size: 13px; font-weight: 600;
+    cursor: pointer; align-items: center; justify-content: center; gap: 3px;
+    box-shadow: 0 2px 8px rgba(233,69,96,0.3);
+  }
+  .mobile-replay-btn:active { background: #c73659; }
+  .sidebar-backdrop {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.45); z-index: 99;
+  }
+  .sidebar-backdrop.show { display: block; }
+
+  .title-bar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 20;
+    background: linear-gradient(180deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.5) 70%, rgba(0,0,0,0) 100%);
+    padding: 14px 50px 20px 24px; pointer-events: none;
+    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .title-bar.hidden { opacity: 0; transform: translateY(-100%); pointer-events: none; }
+  .title-bar .tb-song {
+    font-size: 22px; font-weight: 700; color: #fff; letter-spacing: 2px;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  }
+  .title-bar .tb-info {
+    font-size: 13px; color: rgba(255,255,255,0.75);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+  .tb-toggle {
+    pointer-events: auto; position: absolute; right: 12px; top: 10px;
+    width: 28px; height: 28px; border: none; border-radius: 50%;
+    background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.8);
+    font-size: 13px; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; transition: background 0.2s;
+  }
+  .tb-toggle:hover { background: rgba(255,255,255,0.3); }
+
+  .show-title-btn {
+    position: absolute; top: 8px; right: 8px; z-index: 19;
+    height: 30px; padding: 0 14px; border: none; border-radius: 15px;
+    background: rgba(0,0,0,0.55); color: rgba(255,255,255,0.85);
+    font-size: 12px; cursor: pointer; display: none; align-items: center;
+    white-space: nowrap; transition: background 0.2s;
+  }
+  .show-title-btn:hover { background: rgba(0,0,0,0.75); }
+  .show-title-btn.visible { display: flex; }
+
+  /* 曲谱容器 */
+  .score-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+  .score-page {
+    position: absolute; top: 50%; left: 50%;
+    background: #fff;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    transition: transform 0.15s ease-out;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.15);
+    display: none;
+  }
+  .score-page.active { display: block; }
+  .score-page img {
+    display: block; max-width: none; max-height: none; pointer-events: none;
+  }
+  .highlight-layer {
+    position: absolute; top: 0; left: 0; pointer-events: none;
+  }
+  .highlight-layer.interactive { pointer-events: auto; }
+  .highlight-rect {
+    fill: rgba(255, 220, 50, 0.45);
+    stroke: rgba(255, 180, 0, 0.6); stroke-width: 1;
+  }
+  .cover-rect { fill: #ffffff; stroke: none; }
+  .highlight-rect.drawing, .cover-rect.drawing {
+    stroke: rgba(255, 100, 100, 0.8); stroke-width: 1.5; stroke-dasharray: 4,2;
+  }
+  .bottom-pad { width: 100%; background: #fff; }
+
+  .toolbar {
+    height: 52px; flex-shrink: 0;
+    background: rgba(20,20,20,0.95);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 50px 0 20px; gap: 10px; position: relative;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+  }
+  .toolbar::-webkit-scrollbar { display: none; }
+  .toolbar.hidden { transform: translateY(100%); opacity: 0; pointer-events: none; position: absolute; bottom: 0; left: 0; right: 0; }
+  .tb-toolbar-toggle {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    width: 28px; height: 28px; border: none; border-radius: 50%;
+    background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.7);
+    font-size: 13px; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .tb-toolbar-toggle:hover { background: rgba(255,255,255,0.25); }
+
+  .show-toolbar-btn {
+    position: absolute; bottom: 8px; right: 8px; z-index: 19;
+    height: 30px; padding: 0 14px; border: none; border-radius: 15px;
+    background: rgba(0,0,0,0.55); color: rgba(255,255,255,0.85);
+    font-size: 12px; cursor: pointer; display: none; align-items: center;
+    white-space: nowrap; transition: background 0.2s;
+  }
+  .show-toolbar-btn:hover { background: rgba(0,0,0,0.75); }
+  .show-toolbar-btn.visible { display: flex; }
+  .toolbar button {
+    height: 36px; min-width: 36px; padding: 0 10px; border: none; border-radius: 6px;
+    background: rgba(255,255,255,0.1); color: #fff; font-size: 14px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s; white-space: nowrap; flex-shrink: 0;
+  }
+  .toolbar button:active { background: rgba(233,69,96,0.4); }
+  .toolbar button.active { background: #e94560; color: #fff; }
+  .toolbar button.cover-active { background: #333; color: #fff; border: 1px solid #fff; }
+  .toolbar .zoom-label {
+    color: rgba(255,255,255,0.7); font-size: 13px; min-width: 48px; text-align: center; flex-shrink: 0;
+  }
+  .toolbar .divider { width: 1px; height: 24px; background: rgba(255,255,255,0.15); margin: 0 4px; flex-shrink: 0; }
+
+  .song-list::-webkit-scrollbar { width: 4px; }
+  .song-list::-webkit-scrollbar-track { background: transparent; }
+  .song-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+
+  /* 直播回放区域 - 侧边栏底部 */
+  .replay-section {
+    flex-shrink: 0; padding: 8px; border-top: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.2);
+  }
+  .replay-btn {
+    width: 100%; padding: 10px 8px; border: none; border-radius: 6px;
+    background: linear-gradient(135deg, #e94560 0%, #c73659 100%);
+    color: #fff; font-size: calc(var(--sb-w) * 0.085); font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    gap: 6px; transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 2px 8px rgba(233,69,96,0.3);
+  }
+  .replay-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(233,69,96,0.4); }
+  .replay-btn:active { transform: translateY(0); background: #c73659; }
+
+  /* 视频弹窗 */
+  .video-modal {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85); z-index: 10000;
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .video-modal.open { display: flex; }
+  .video-modal-inner {
+    width: 100%; max-width: 900px; background: #000; border-radius: 10px;
+    overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    position: relative;
+  }
+  .video-modal-head {
+    padding: 14px 18px; background: #1a1a2e; color: #fff;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .video-modal-head h3 { font-size: 16px; font-weight: 600; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+  .video-modal-close {
+    width: 30px; height: 30px; border: none; border-radius: 50%;
+    background: rgba(255,255,255,0.15); color: #fff; font-size: 18px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .video-modal-close:hover { background: #e94560; }
+  .video-player-wrap {
+    position: relative; width: 100%; padding-top: 56.25%; background: #000;
+  }
+  .video-player-wrap iframe {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    border: none;
+  }
+  .video-list-panel {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85); z-index: 10001;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .video-list-panel.open { display: flex; }
+  .video-list-inner {
+    width: 100%; max-width: 500px; max-height: 80vh; background: #1a1a2e;
+    border-radius: 10px; overflow: hidden; display: flex; flex-direction: column;
+  }
+  .video-list-head {
+    padding: 14px 18px; background: #16213e; color: #fff;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .video-list-head h3 { font-size: 16px; font-weight: 600; }
+  .video-list-tip {
+    padding: 12px 16px; background: rgba(233,69,96,0.15);
+    color: #ff8fa3; font-size: 15px; font-weight: 600; text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .video-list-scroll { flex: 1; overflow-y: auto; padding: 8px; }
+  .video-item {
+    padding: 12px 14px; margin: 4px 0; border-radius: 8px;
+    background: rgba(255,255,255,0.05); cursor: pointer;
+    transition: background 0.15s;
+  }
+  .video-item:hover { background: rgba(233,69,96,0.2); }
+  .video-item .vi-name { color: #fff; font-size: 14px; font-weight: 600; }
+  .video-item .vi-meta { color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 4px; }
+
+  /* ===== 手机端适配 ===== */
+  @media (max-width: 768px) {
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: 75vw; max-width: 300px; min-width: 0;
+      --sb-w: 75vw;
+      transform: translateX(-100%);
+      transition: transform 0.25s ease;
+      z-index: 200;
+    }
+    .sidebar.open { transform: translateX(0); }
+    .resizer { display: none; }
+    .menu-btn { display: flex; }
+    .mobile-replay-btn { display: flex; }
+    #btnCover { display: none; }
+    .content-wrapper { width: 100%; }
+
+    .title-bar { padding: 10px 44px 16px 170px; }
+    .title-bar .tb-song { font-size: 17px; letter-spacing: 1px; }
+    .title-bar .tb-info { font-size: 11px; }
+    .tb-toggle { width: 26px; height: 26px; right: 8px; top: 8px; }
+    .show-title-btn { height: 28px; font-size: 11px; padding: 0 10px; }
+
+    .toolbar {
+      height: 48px; padding: 0 40px 0 8px; gap: 6px;
+      justify-content: flex-start;
+    }
+    .toolbar button { height: 32px; min-width: 32px; padding: 0 8px; font-size: 12px; }
+    .toolbar .zoom-label { font-size: 12px; min-width: 40px; }
+    .toolbar .divider { height: 20px; margin: 0 2px; }
+    .tb-toolbar-toggle { width: 26px; height: 26px; right: 8px; }
+    .show-toolbar-btn { height: 28px; font-size: 11px; padding: 0 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="container" id="container">
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2>公开课福利【曲谱+回放】</h2>
+      <p>贺老师声乐教学专用</p>
+    </div>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="搜索歌名 / 歌手 / 日期">
+    </div>
+    <div class="song-list" id="songList"></div>
+    <div class="replay-section">
+      <button class="replay-btn" id="replayBtn"><span style="font-size:1.1em;">▶</span><span>直播回放 (2)</span></button>
+    </div>
+  </div>
+  <div class="resizer" id="resizer"></div>
+
+  <div class="content-wrapper">
+    <div class="content" id="viewArea">
+      <button class="menu-btn" id="menuBtn">选歌 ♪</button>
+      <button class="mobile-replay-btn" id="mobileReplayBtn">▶ 回放</button>
+      <div class="title-bar" id="titleBar">
+        <span class="tb-song" id="tbSong">爱的箴言</span>
+        <span class="tb-info" id="tbInfo">罗大佑 词曲 · 邓丽君演唱</span>
+        <button class="tb-toggle" id="btnHideTitle" title="隐藏歌名栏">▾</button>
+      </div>
+      <button class="show-title-btn" id="btnShowTitle">歌名信息 ▴</button>
+      <div class="score-container" id="scoreContainer"></div>
+    </div>
+    <div class="toolbar" id="toolbar">
+      <button id="btnZoomOut" title="缩小" style="font-size:18px;">−</button>
+      <span class="zoom-label" id="zoomLabel">100%</span>
+      <button id="btnZoomIn" title="放大" style="font-size:18px;">+</button>
+      <div class="divider"></div>
+      <button id="btnFill" title="填满界面(I)">看谱</button>
+      <div class="divider"></div>
+      <button id="btnAnnotate" title="标注(C)">标注</button>
+      <button id="btnCover" title="遮盖(K)">遮盖</button>
+      <button id="btnClear" title="清除全部" style="display:none;">清除</button>
+      <div class="divider"></div>
+      <button id="btnOriginal" title="听原唱" style="background:rgba(233,69,96,0.6);color:#fff;">♪ 原唱</button>
+      <button id="btnAutoScroll" title="自动下滑" style="background:rgba(76,175,80,0.7);color:#fff;">▼ 下滑</button>
+      <select id="scrollSpeed" style="height:28px;border:none;border-radius:4px;background:rgba(255,255,255,0.15);color:#fff;font-size:12px;padding:0 4px;cursor:pointer;">
+        <option value="0.5" style="color:#000;">0.5x</option>
+        <option value="1" selected style="color:#000;">1x</option>
+        <option value="1.5" style="color:#000;">1.5x</option>
+        <option value="2" style="color:#000;">2x</option>
+      </select>
+      <button class="tb-toolbar-toggle" id="btnHideToolbar" title="隐藏工具栏">▾</button>
+    </div>
+    <button class="show-toolbar-btn" id="btnShowToolbar">功能栏 ▴</button>
+  </div>
+</div>
+
+<!-- 直播回放视频列表 -->
+<div class="video-list-panel" id="videoListPanel">
+  <div class="video-list-inner">
+    <div class="video-list-head">
+      <h3>直播回放</h3>
+      <button class="video-modal-close" onclick="closeVideoList()">✕</button>
+    </div>
+    <div class="video-list-tip">👆 点击下面的回放即可播放</div>
+    <div class="video-list-scroll" id="videoListScroll"></div>
+  </div>
+</div>
+
+<!-- 视频播放器弹窗 -->
+<div class="video-modal" id="videoModal">
+  <div class="video-modal-inner">
+    <div class="video-modal-head">
+      <h3 id="videoTitle">视频播放</h3>
+      <button class="video-modal-close" onclick="closeVideo()">✕</button>
+    </div>
+    <div class="video-player-wrap">
+      <iframe id="videoFrame" src="" allowfullscreen="true" allow="autoplay; encrypted-media"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- 原唱播放器弹窗 -->
+<div class="video-modal" id="originalModal">
+  <div class="video-modal-inner">
+    <div class="video-modal-head">
+      <h3 id="originalTitle">原唱播放</h3>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <a id="originalBiliLink" href="" target="_blank" style="color:#e94560;font-size:13px;text-decoration:none;">在B站打开 ↗</a>
+        <button class="video-modal-close" onclick="closeOriginal()">✕</button>
+      </div>
+    </div>
+    <div class="video-player-wrap">
+      <iframe id="originalFrame" src="" allowfullscreen="true" allow="autoplay; encrypted-media"></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+  var songs = [
+    { singer: '邓丽君', date: '2026-08-28', name: '甜蜜蜜', info: '庄奴词 · 佚名曲 · 邓丽君演唱', file: 'tianmimi.jpg', original: 'BV1ua4y177vs' },
+    { singer: '王菲', date: '2026-08-28', name: '红豆', info: '林夕词 · 陈小霞曲 · 王菲演唱', file: 'hongdou.jpg', original: 'BV1NJ411r7oz' },
+    { singer: '邓丽君', date: '2026-08-27', name: '爱的箴言', info: '罗大佑 词曲 · 邓丽君演唱', file: 'aizhenyan.jpg', original: 'BV11HDZYrEeC' },
+    { singer: '李健', date: '2026-08-27', name: '人间共鸣', info: '董玉方作词 · 钱雷作曲 · 李健演唱', file: 'renjiangongming.jpg', original: 'BV1BFZLBDEGP' }
+  ];
+
+  // 直播回放视频列表（后续添加新视频只需在这里追加）
+  var replays = [
+    { name: '8月28日直播回放', date: '2026-08-28', duration: '1小时55分', bv: 'BV1qu4k6HE9z' },
+    { name: '8月27日直播回放', date: '2026-08-27', duration: '2小时6分', bv: 'BV1P8tc6SEBb' },
+    { name: '8月26日直播回放', date: '2026-08-26', duration: '1小时56分', bv: 'BV1Y9tc6AEFu' },
+    { name: '8月12日直播回放', date: '2026-08-12', duration: '2小时2分', bv: 'BV14a4k6vEVL' },
+    { name: '8月7日直播回放', date: '2026-08-07', duration: '2小时5分', bv: 'BV12a4k6vEuL' }
+  ];
+
+  var collapsedSingers = {};
+  var searchKeyword = '';
+  var isMobile = window.innerWidth <= 768;
+
+  // 每首歌独立的元素和数据
+  var scorePages = [];
+  var scoreImages = [];
+  var highlightLayers = [];
+  var bottomPads = [];
+  var undoStack = songs.map(function() { return []; });
+  var highlights = songs.map(function() { return []; });
+  var covers = songs.map(function() { return []; });
+  var loadedCount = 0;
+
+  var currentSongIndex = 0;
+  var currentScale = 1;
+  var panX = 0, panY = 0;
+  var isDragging = false;
+  var currentMode = 'pan';
+  var isDrawing = false;
+  var drawStartX, drawStartY, currentRect;
+  var dragStartX, dragStartY, dragPanStartX, dragPanStartY;
+  var MIN_SCALE = 0.3, MAX_SCALE = 8, ZOOM_STEP = 0.2;
+
+  var viewArea = document.getElementById('viewArea');
+  var zoomLabel = document.getElementById('zoomLabel');
+  var scoreContainer = document.getElementById('scoreContainer');
+  var btnAnnotate = document.getElementById('btnAnnotate');
+  var btnCover = document.getElementById('btnCover');
+  var btnClear = document.getElementById('btnClear');
+  var container = document.getElementById('container');
+  var resizer = document.getElementById('resizer');
+  var searchInput = document.getElementById('searchInput');
+  var sidebar = document.getElementById('sidebar');
+  var sidebarBackdrop = document.getElementById('sidebarBackdrop');
+  var menuBtn = document.getElementById('menuBtn');
+  var btnAutoScroll = document.getElementById('btnAutoScroll');
+  var scrollSpeedSelect = document.getElementById('scrollSpeed');
+
+  // 创建所有曲谱页面（图片一次性全部加载）
+  songs.forEach(function(s, i) {
+    var page = document.createElement('div');
+    page.className = 'score-page' + (i === 0 ? ' active' : '');
+
+    var img = document.createElement('img');
+    img.alt = s.name;
+    img.src = s.file;
+
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'highlight-layer');
+
+    var pad = document.createElement('div');
+    pad.className = 'bottom-pad';
+
+    page.appendChild(img);
+    page.appendChild(svg);
+    page.appendChild(pad);
+    scoreContainer.appendChild(page);
+
+    scorePages.push(page);
+    scoreImages.push(img);
+    highlightLayers.push(svg);
+    bottomPads.push(pad);
+
+    img.onload = function() {
+      svg.setAttribute('width', img.naturalWidth);
+      svg.setAttribute('height', img.naturalHeight);
+      pad.style.height = Math.max(120, Math.round(img.naturalHeight * 0.15)) + 'px';
+      loadedCount++;
+      if (i === currentSongIndex) {
+        renderAll();
+        fitToView();
+        // 手机端布局稳定后再适配一次
+        if (isMobile) { setTimeout(fitToView, 100); setTimeout(fitToView, 400); }
+      }
+    };
+  });
+
+  function scoreImage() { return scoreImages[currentSongIndex]; }
+  function scoreWrapper() { return scorePages[currentSongIndex]; }
+  function highlightLayer() { return highlightLayers[currentSongIndex]; }
+  function bottomPad() { return bottomPads[currentSongIndex]; }
+
+  function renderSongList() {
+    var list = document.getElementById('songList');
+    list.innerHTML = '';
+    var kw = searchKeyword.trim().toLowerCase();
+
+    // 按日期分组（倒序，最新在前）
+    var dateGroups = {};
+    var dateOrder = [];
+    songs.forEach(function(s, i) {
+      if (kw) {
+        var hay = (s.singer + ' ' + s.name + ' ' + s.date + ' ' + s.date.substring(5)).toLowerCase();
+        if (hay.indexOf(kw) === -1) return;
+      }
+      if (!dateGroups[s.date]) { dateGroups[s.date] = []; dateOrder.push(s.date); }
+      dateGroups[s.date].push({ idx: i, song: s });
+    });
+    // 最新日期排最前面
+    dateOrder.sort().reverse();
+
+    if (dateOrder.length === 0) {
+      list.innerHTML = '<div class="no-result">没有找到匹配的曲谱</div>';
+      return;
+    }
+
+    dateOrder.forEach(function(date) {
+      var items = dateGroups[date];
+      // 日期头：格式化为 "8月27日"
+      var dp = date.split('-');
+      var dateLabel = parseInt(dp[1]) + '月' + parseInt(dp[2]) + '日';
+      var dateKey = 'date_' + date;
+      var isDateCollapsed = collapsedSingers[dateKey] && !kw;
+
+      var dateHeader = document.createElement('div');
+      dateHeader.className = 'singer-header';
+      dateHeader.style.cssText = 'color:#e94560; font-size:calc(var(--sb-w)*0.1); padding-top:calc(var(--sb-w)*0.08); border-top:1px solid rgba(233,69,96,0.2);';
+      if (isDateCollapsed) dateHeader.classList.add('collapsed');
+      dateHeader.innerHTML = '<span class="arrow"></span><span>' + dateLabel + '</span><span class="singer-count">' + items.length + '首</span>';
+      dateHeader.addEventListener('click', function() {
+        collapsedSingers[dateKey] = !collapsedSingers[dateKey];
+        renderSongList();
+      });
+      list.appendChild(dateHeader);
+
+      var dateWrap = document.createElement('div');
+      dateWrap.className = 'singer-songs' + (isDateCollapsed ? ' collapsed' : '');
+
+      // 日期下直接列歌曲（歌手名显示在歌名旁，搜索仍可命中）
+      items.forEach(function(item) {
+        var div = document.createElement('div');
+        div.className = 'song-item' + (item.idx === currentSongIndex ? ' active' : '');
+        div.style.paddingLeft = 'calc(var(--sb-w)*0.12)';
+        div.innerHTML = '<span class="si-singer">' + item.song.singer + '</span><span class="si-name">' + item.song.name + '</span>';
+        div.addEventListener('click', function() {
+          selectSong(item.idx);
+          if (isMobile) closeSidebar();
+        });
+        dateWrap.appendChild(div);
+      });
+
+      list.appendChild(dateWrap);
+    });
+  }
+
+  // 切歌：只切换显示，图片已预加载，零延迟
+  function selectSong(idx) {
+    if (idx === currentSongIndex) return;
+    // 切歌时停止自动下滑
+    if (isAutoScrolling) {
+      isAutoScrolling = false;
+      stopAutoScroll();
+      btnAutoScroll.textContent = '▼ 下滑';
+      btnAutoScroll.style.background = 'rgba(76,175,80,0.7)';
+    }
+    currentSongIndex = idx;
+    var s = songs[idx];
+
+    // 切换可见页面
+    scorePages.forEach(function(p, i) {
+      if (i === idx) { p.classList.add('active'); }
+      else { p.classList.remove('active'); }
+    });
+
+    document.getElementById('tbSong').textContent = s.name;
+    document.getElementById('tbInfo').textContent = s.info;
+    renderSongList();
+    renderAll();
+    fitToView();
+  }
+
+  // 手机端目录开关
+  function openSidebar() { sidebar.classList.add('open'); sidebarBackdrop.classList.add('show'); }
+  function closeSidebar() { sidebar.classList.remove('open'); sidebarBackdrop.classList.remove('show'); }
+  menuBtn.addEventListener('click', openSidebar);
+  sidebarBackdrop.addEventListener('click', closeSidebar);
+
+  window.addEventListener('resize', function() {
+    isMobile = window.innerWidth <= 768;
+    if (!isMobile) closeSidebar();
+    clearTimeout(window._fitTimer);
+    window._fitTimer = setTimeout(fitToView, 150);
+  });
+  window.addEventListener('orientationchange', function() {
+    setTimeout(fitToView, 300);
+  });
+
+  renderSongList();
+
+  searchInput.addEventListener('input', function() {
+    searchKeyword = this.value;
+    renderSongList();
+  });
+
+  var isResizing = false;
+  resizer.addEventListener('mousedown', function(e) {
+    if (isMobile) return;
+    isResizing = true; resizer.classList.add('dragging');
+    document.body.style.cursor = 'col-resize'; e.preventDefault();
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!isResizing) return;
+    var w = Math.max(100, Math.min(360, e.clientX));
+    container.style.setProperty('--sb-w', w + 'px');
+  });
+  document.addEventListener('mouseup', function() {
+    if (isResizing) { isResizing = false; resizer.classList.remove('dragging'); document.body.style.cursor = ''; }
+  });
+
+  function updateTransform(animate) {
+    var sw = scoreWrapper();
+    sw.style.transition = animate ? 'transform 0.15s ease-out' : 'none';
+    sw.style.transform = 'translate(calc(-50% + ' + panX + 'px), calc(-50% + ' + panY + 'px)) scale(' + currentScale + ')';
+    zoomLabel.textContent = Math.round(currentScale * 100) + '%';
+  }
+
+  function getWrapperSize() {
+    return { w: scoreImage().naturalWidth, h: scoreImage().naturalHeight + bottomPad().offsetHeight };
+  }
+
+  function clampPan() {
+    var ws = getWrapperSize();
+    var maxPanX = Math.max(0, (ws.w * currentScale - viewArea.clientWidth) / 2);
+    var maxPanY = Math.max(0, (ws.h * currentScale - viewArea.clientHeight) / 2);
+    panX = Math.max(-maxPanX, Math.min(maxPanX, panX));
+    panY = Math.max(-maxPanY, Math.min(maxPanY, panY));
+  }
+
+  function svgEl(name, attrs) {
+    var el = document.createElementNS('http://www.w3.org/2000/svg', name);
+    for (var k in attrs) { el.setAttribute(k, attrs[k]); }
+    return el;
+  }
+
+  function renderAll() {
+    var hl = highlightLayer();
+    hl.innerHTML = '';
+    covers[currentSongIndex].forEach(function(r) {
+      hl.appendChild(svgEl('rect', { x: r.x, y: r.y, width: r.w, height: r.h, class: 'cover-rect' }));
+    });
+    highlights[currentSongIndex].forEach(function(r) {
+      hl.appendChild(svgEl('rect', { x: r.x, y: r.y, width: r.w, height: r.h, class: 'highlight-rect' }));
+    });
+  }
+
+  function screenToSvg(clientX, clientY) {
+    var wr = scoreWrapper().getBoundingClientRect();
+    return { x: (clientX - wr.left) / currentScale, y: (clientY - wr.top) / currentScale };
+  }
+
+  function setMode(mode) {
+    currentMode = mode;
+    viewArea.classList.remove('annotate', 'cover');
+    btnAnnotate.classList.remove('active');
+    btnCover.classList.remove('cover-active');
+    highlightLayers.forEach(function(hl) { hl.classList.remove('interactive'); });
+    btnClear.style.display = 'none';
+    if (mode === 'annotate') {
+      viewArea.classList.add('annotate');
+      btnAnnotate.classList.add('active');
+      btnAnnotate.textContent = '退出';
+      btnCover.textContent = '遮盖';
+      highlightLayer().classList.add('interactive');
+      btnClear.style.display = 'flex';
+    } else if (mode === 'cover') {
+      viewArea.classList.add('cover');
+      btnCover.classList.add('cover-active');
+      btnCover.textContent = '退出';
+      btnAnnotate.textContent = '标注';
+      highlightLayer().classList.add('interactive');
+      btnClear.style.display = 'flex';
+    } else {
+      btnAnnotate.textContent = '标注';
+      btnCover.textContent = '遮盖';
+    }
+  }
+
+  function fitToView() {
+    var img = scoreImage();
+    if (!img || !img.naturalWidth) return;
+    // 手机端需要减去工具栏和歌名栏占用的高度，确保整张谱可见
+    var availW = viewArea.clientWidth;
+    var availH = viewArea.clientHeight;
+    if (isMobile) {
+      var tb = document.getElementById('toolbar');
+      var titlebar = document.getElementById('titleBar');
+      availH = viewArea.clientHeight;
+    }
+    var padH = bottomPad().offsetHeight;
+    var imgH = img.naturalHeight + padH;
+    var scaleW = availW / img.naturalWidth;
+    var scaleH = availH / imgH;
+    currentScale = Math.min(scaleW, scaleH) * 0.96;
+    panX = 0; panY = 0;
+    updateTransform(true);
+  }
+
+  function fillView() {
+    var img = scoreImage();
+    if (!img.naturalWidth) return;
+    currentScale = viewArea.clientWidth / img.naturalWidth;
+    panX = 0;
+    var ws = getWrapperSize();
+    var scaledH = ws.h * currentScale;
+    panY = (scaledH - viewArea.clientHeight) / 2;
+    if (scaledH <= viewArea.clientHeight) {
+      panY = (viewArea.clientHeight - scaledH) / 2 * -1;
+    }
+    updateTransform(true);
+  }
+
+  viewArea.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    if (currentMode !== 'pan') return;
+    var delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+    var step = currentScale > 2 ? ZOOM_STEP * 1.5 : ZOOM_STEP;
+    currentScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, currentScale + delta * (delta > 0 ? step : step)));
+    clampPan(); updateTransform(false);
+  }, { passive: false });
+
+  viewArea.addEventListener('mousedown', function(e) {
+    if (currentMode === 'annotate' || currentMode === 'cover') {
+      e.preventDefault();
+      var pt = screenToSvg(e.clientX, e.clientY);
+      drawStartX = pt.x; drawStartY = pt.y;
+      isDrawing = true;
+      var cls = currentMode === 'cover' ? 'cover-rect drawing' : 'highlight-rect drawing';
+      currentRect = svgEl('rect', { x: pt.x, y: pt.y, width: 0, height: 0, class: cls });
+      highlightLayer().appendChild(currentRect);
+    } else {
+      isDragging = true;
+      viewArea.classList.add('dragging');
+      dragStartX = e.clientX; dragStartY = e.clientY;
+      dragPanStartX = panX; dragPanStartY = panY;
+    }
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (isResizing) return;
+    if (isDrawing && currentRect) {
+      var pt = screenToSvg(e.clientX, e.clientY);
+      currentRect.setAttribute('x', Math.min(drawStartX, pt.x));
+      currentRect.setAttribute('y', Math.min(drawStartY, pt.y));
+      currentRect.setAttribute('width', Math.abs(pt.x - drawStartX));
+      currentRect.setAttribute('height', Math.abs(pt.y - drawStartY));
+    } else if (isDragging) {
+      panX = dragPanStartX + (e.clientX - dragStartX);
+      panY = dragPanStartY + (e.clientY - dragStartY);
+      clampPan(); updateTransform(false);
+    }
+  });
+
+  document.addEventListener('mouseup', function() {
+    if (isDrawing && currentRect) {
+      var w = parseFloat(currentRect.getAttribute('width'));
+      var h = parseFloat(currentRect.getAttribute('height'));
+      var x = parseFloat(currentRect.getAttribute('x'));
+      var y = parseFloat(currentRect.getAttribute('y'));
+      currentRect.remove();
+      if (w > 5 && h > 5) {
+        var rect = { x: x, y: y, w: w, h: h };
+        if (currentMode === 'cover') { covers[currentSongIndex].push(rect); }
+        else { highlights[currentSongIndex].push(rect); }
+        undoStack[currentSongIndex].push(currentMode);
+        renderAll();
+      }
+      isDrawing = false; currentRect = null;
+    }
+    isDragging = false;
+    viewArea.classList.remove('dragging');
+  });
+
+  var lastTouchDist = 0;
+  var touchDrawStart = null;
+  viewArea.addEventListener('touchstart', function(e) {
+    if ((currentMode === 'annotate' || currentMode === 'cover') && e.touches.length === 1) {
+      var pt = screenToSvg(e.touches[0].clientX, e.touches[0].clientY);
+      touchDrawStart = pt; isDrawing = true;
+      var cls = currentMode === 'cover' ? 'cover-rect drawing' : 'highlight-rect drawing';
+      currentRect = svgEl('rect', { x: pt.x, y: pt.y, width: 0, height: 0, class: cls });
+      highlightLayer().appendChild(currentRect); e.preventDefault();
+    } else if (e.touches.length === 1) {
+      isDragging = true;
+      dragStartX = e.touches[0].clientX; dragStartY = e.touches[0].clientY;
+      dragPanStartX = panX; dragPanStartY = panY;
+    } else if (e.touches.length === 2) {
+      isDragging = false;
+      lastTouchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    }
+  }, { passive: false });
+  viewArea.addEventListener('touchmove', function(e) {
+    if ((currentMode === 'annotate' || currentMode === 'cover') && e.touches.length === 1 && isDrawing && currentRect) {
+      var pt = screenToSvg(e.touches[0].clientX, e.touches[0].clientY);
+      currentRect.setAttribute('x', Math.min(touchDrawStart.x, pt.x));
+      currentRect.setAttribute('y', Math.min(touchDrawStart.y, pt.y));
+      currentRect.setAttribute('width', Math.abs(pt.x - touchDrawStart.x));
+      currentRect.setAttribute('height', Math.abs(pt.y - touchDrawStart.y));
+      e.preventDefault();
+    } else if (e.touches.length === 1 && isDragging) {
+      panX = dragPanStartX + (e.touches[0].clientX - dragStartX);
+      panY = dragPanStartY + (e.touches[0].clientY - dragStartY);
+      clampPan(); updateTransform(false); e.preventDefault();
+    } else if (e.touches.length === 2) {
+      var dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      currentScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, currentScale * (dist / lastTouchDist)));
+      lastTouchDist = dist; clampPan(); updateTransform(false); e.preventDefault();
+    }
+  }, { passive: false });
+  viewArea.addEventListener('touchend', function() {
+    if (isDrawing && currentRect) {
+      var w = parseFloat(currentRect.getAttribute('width'));
+      var h = parseFloat(currentRect.getAttribute('height'));
+      var x = parseFloat(currentRect.getAttribute('x'));
+      var y = parseFloat(currentRect.getAttribute('y'));
+      currentRect.remove();
+      if (w > 10 && h > 10) {
+        var rect = { x: x, y: y, w: w, h: h };
+        if (currentMode === 'cover') { covers[currentSongIndex].push(rect); }
+        else { highlights[currentSongIndex].push(rect); }
+        undoStack[currentSongIndex].push(currentMode);
+        renderAll();
+      }
+      isDrawing = false; currentRect = null;
+    }
+    isDragging = false;
+  });
+
+  viewArea.addEventListener('dblclick', function(e) {
+    if (currentMode !== 'pan') return;
+    if (currentScale < 2.5) { fillView(); } else { fitToView(); }
+  });
+
+  document.getElementById('btnZoomIn').addEventListener('click', function() {
+    var step = currentScale > 2 ? ZOOM_STEP * 1.5 : ZOOM_STEP;
+    currentScale = Math.min(MAX_SCALE, currentScale + step);
+    clampPan(); updateTransform(true);
+  });
+  document.getElementById('btnZoomOut').addEventListener('click', function() {
+    var step = currentScale > 2 ? ZOOM_STEP * 1.5 : ZOOM_STEP;
+    currentScale = Math.max(MIN_SCALE, currentScale - step);
+    clampPan(); updateTransform(true);
+  });
+  document.getElementById('btnFill').addEventListener('click', fillView);
+
+  btnAnnotate.addEventListener('click', function() { setMode(currentMode === 'annotate' ? 'pan' : 'annotate'); });
+  btnCover.addEventListener('click', function() { setMode(currentMode === 'cover' ? 'pan' : 'cover'); });
+  btnClear.addEventListener('click', function() {
+    highlights[currentSongIndex] = [];
+    covers[currentSongIndex] = [];
+    undoStack[currentSongIndex] = [];
+    renderAll();
+  });
+
+  function undo() {
+    var stack = undoStack[currentSongIndex];
+    if (!stack.length) return;
+    var type = stack.pop();
+    if (type === 'cover') { covers[currentSongIndex].pop(); }
+    else { highlights[currentSongIndex].pop(); }
+    renderAll();
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); return; }
+    var tag = document.activeElement.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if (e.key === 'c' && !e.ctrlKey && !e.metaKey) { setMode(currentMode === 'annotate' ? 'pan' : 'annotate'); }
+    if (e.key === 'k' && !e.ctrlKey && !e.metaKey) { setMode(currentMode === 'cover' ? 'pan' : 'cover'); }
+    if (e.key === 'i' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); fillView(); }
+    if (e.key === 'h' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); toggleUI(); }
+  });
+
+  var titleBar = document.getElementById('titleBar');
+  var toolbar = document.getElementById('toolbar');
+  var btnHideTitle = document.getElementById('btnHideTitle');
+  var btnShowTitle = document.getElementById('btnShowTitle');
+  var btnHideToolbar = document.getElementById('btnHideToolbar');
+  var btnShowToolbar = document.getElementById('btnShowToolbar');
+
+  function hideTitle() { titleBar.classList.add('hidden'); btnShowTitle.classList.add('visible'); }
+  function showTitle() { titleBar.classList.remove('hidden'); btnShowTitle.classList.remove('visible'); }
+  function hideToolbar() { toolbar.classList.add('hidden'); btnShowToolbar.classList.add('visible'); }
+  function showToolbar() { toolbar.classList.remove('hidden'); btnShowToolbar.classList.remove('visible'); }
+
+  btnHideTitle.addEventListener('click', hideTitle);
+  btnShowTitle.addEventListener('click', showTitle);
+  btnHideToolbar.addEventListener('click', hideToolbar);
+  btnShowToolbar.addEventListener('click', showToolbar);
+
+  function toggleUI() {
+    if (titleBar.classList.contains('hidden') && toolbar.classList.contains('hidden')) {
+      showTitle(); showToolbar();
+    } else {
+      hideTitle(); hideToolbar();
+    }
+  }
+
+  // ===== 直播回放功能 =====
+  var replayBtn = document.getElementById('replayBtn');
+  var videoListPanel = document.getElementById('videoListPanel');
+  var videoListScroll = document.getElementById('videoListScroll');
+  var videoModal = document.getElementById('videoModal');
+  var videoFrame = document.getElementById('videoFrame');
+  var videoTitle = document.getElementById('videoTitle');
+
+  // 更新回放按钮数量
+  replayBtn.querySelector('span:last-child').textContent = '直播回放 (' + replays.length + ')';
+
+  function renderVideoList() {
+    videoListScroll.innerHTML = '';
+    replays.forEach(function(v, idx) {
+      var item = document.createElement('div');
+      item.className = 'video-item';
+      item.innerHTML = '<div class="vi-name">▶ ' + v.name + '</div>' +
+        '<div class="vi-meta">' + v.date + ' · ' + v.duration + '</div>';
+      item.onclick = function() { openVideo(v); };
+      videoListScroll.appendChild(item);
+    });
+  }
+
+  function openVideoList() {
+    renderVideoList();
+    videoListPanel.classList.add('open');
+  }
+
+  function closeVideoList() {
+    videoListPanel.classList.remove('open');
+  }
+
+  function openVideo(v) {
+    videoTitle.innerHTML = '<span>' + v.name + '</span>' +
+      '<a href="https://www.bilibili.com/video/' + v.bv + '/" target="_blank" rel="noopener" ' +
+      'style="margin-left:12px;font-size:13px;color:#e94560;text-decoration:none;font-weight:500;">在B站打开 ↗</a>';
+    videoFrame.src = '//player.bilibili.com/player.html?bvid=' + v.bv + '&high_quality=1&danmaku=0';
+    videoModal.classList.add('open');
+    videoListPanel.classList.remove('open');
+  }
+
+  function closeVideo() {
+    videoFrame.src = '';
+    videoModal.classList.remove('open');
+  }
+
+  replayBtn.addEventListener('click', openVideoList);
+
+  // 手机端回放按钮
+  var mobileReplayBtn = document.getElementById('mobileReplayBtn');
+  mobileReplayBtn.addEventListener('click', openVideoList);
+
+  // 点击遮罩关闭
+  videoListPanel.addEventListener('click', function(e) {
+    if (e.target === videoListPanel) closeVideoList();
+  });
+  videoModal.addEventListener('click', function(e) {
+    if (e.target === videoModal) closeVideo();
+  });
+
+  // 原唱播放
+  var originalModal = document.getElementById('originalModal');
+  var originalFrame = document.getElementById('originalFrame');
+  var originalTitle = document.getElementById('originalTitle');
+  var originalBiliLink = document.getElementById('originalBiliLink');
+  var btnOriginal = document.getElementById('btnOriginal');
+
+  function openOriginal() {
+    var song = songs[currentSongIndex];
+    if (!song || !song.original) return;
+    originalTitle.textContent = '♪ ' + song.name + ' - ' + song.singer;
+    originalBiliLink.href = 'https://www.bilibili.com/video/' + song.original + '/';
+    originalFrame.src = '//player.bilibili.com/player.html?bvid=' + song.original + '&high_quality=1&danmaku=0';
+    originalModal.classList.add('open');
+  }
+
+  function closeOriginal() {
+    originalModal.classList.remove('open');
+    originalFrame.src = '';
+  }
+
+  btnOriginal.addEventListener('click', openOriginal);
+
+  // 自动下滑功能
+  var isAutoScrolling = false;
+  var scrollSpeed = 1;
+  var autoScrollTimer = null;
+
+  function toggleAutoScroll() {
+    console.log('toggleAutoScroll called, current isAutoScrolling:', isAutoScrolling);
+    isAutoScrolling = !isAutoScrolling;
+    if (isAutoScrolling) {
+      btnAutoScroll.textContent = '⏸ 暂停';
+      btnAutoScroll.style.background = 'rgba(255,140,0,0.85)';
+      // 开始下滑前，先跳到顶部
+      var ws = getWrapperSize();
+      var maxPanY = Math.max(0, (ws.h * currentScale - viewArea.clientHeight) / 2);
+      console.log('ws.h:', ws.h, 'currentScale:', currentScale, 'viewArea.clientHeight:', viewArea.clientHeight, 'maxPanY:', maxPanY);
+      panY = maxPanY;
+      clampPan();
+      updateTransform(true);
+      console.log('panY set to:', panY, 'starting auto scroll');
+      startAutoScroll();
+    } else {
+      btnAutoScroll.textContent = '▼ 下滑';
+      btnAutoScroll.style.background = 'rgba(76,175,80,0.7)';
+      stopAutoScroll();
+    }
+  }
+
+  function startAutoScroll() {
+    if (autoScrollTimer) return;
+    var lastTime = Date.now();
+    function scrollStep() {
+      if (!isAutoScrolling) return;
+      var now = Date.now();
+      var delta = now - lastTime;
+      lastTime = now;
+      var scrollAmount = scrollSpeed * delta * 0.05;
+      // 减小panY实现向下滚动（图片向上移动）
+      panY -= scrollAmount;
+      clampPan();
+      updateTransform(false);
+      autoScrollTimer = requestAnimationFrame(scrollStep);
+    }
+    autoScrollTimer = requestAnimationFrame(scrollStep);
+  }
+
+  function stopAutoScroll() {
+    if (autoScrollTimer) {
+      cancelAnimationFrame(autoScrollTimer);
+      autoScrollTimer = null;
+    }
+  }
+
+  btnAutoScroll.addEventListener('click', toggleAutoScroll);
+  scrollSpeedSelect.addEventListener('change', function() {
+    scrollSpeed = parseFloat(this.value);
+  });
+
+  originalModal.addEventListener('click', function(e) {
+    if (e.target === originalModal) closeOriginal();
+  });
+
+  // ESC关闭
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      if (originalModal.classList.contains('open')) closeOriginal();
+      else if (videoModal.classList.contains('open')) closeVideo();
+      else if (videoListPanel.classList.contains('open')) closeVideoList();
+    }
+  });
+</script>
+</body>
+</html>
