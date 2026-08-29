@@ -325,6 +325,111 @@
   .video-item .vi-meta { color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 4px; }
 
   /* ===== 手机端适配 ===== */
+  /* ===== 直播工具箱（仅电脑版，Ctrl+H 开关） ===== */
+  .tb-resizer {
+    width: 6px; flex-shrink: 0; cursor: col-resize; display: none;
+    background: rgba(233,69,96,0.35); position: relative; z-index: 50;
+  }
+  .tb-resizer:hover, .tb-resizer.dragging { background: #e94560; }
+  .tb-resizer::after {
+    content: ''; position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    width: 18px; height: 44px; border-radius: 9px;
+    background: rgba(255,255,255,0.25);
+  }
+  .tb-panel {
+    display: none; flex-direction: column; flex-shrink: 0;
+    width: 380px; min-width: 280px; max-width: 60vw;
+    height: 100vh; height: 100dvh;
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: #fff; overflow: hidden; z-index: 90;
+  }
+  body.tb-on .tb-panel { display: flex; }
+  body.tb-on .tb-resizer { display: block; }
+  body.tb-on .sidebar { display: none; }
+  body.tb-on .resizer { display: none; }
+
+  .tb-rows { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 6px 4px; }
+  .tb-row { padding: 10px 14px; }
+  .tb-row.line { border-top: 1px solid rgba(255,255,255,0.12); }
+  .tb-split { display: flex; align-items: stretch; }
+  .tb-half { flex: 1; min-width: 0; padding: 0 12px; }
+  .tb-half + .tb-half { border-left: 1px solid rgba(255,255,255,0.15); }
+
+  .tb-label { font-size: 13px; color: rgba(255,255,255,0.55); margin-bottom: 4px; }
+  .tb-label.red { color: #ff7a90; }
+  .tb-time { font-size: 30px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .tb-time.over { color: #ff4d6a; }
+  .tb-name { font-size: 24px; font-weight: 800; color: #fff; line-height: 1.2; }
+  .tb-name.over { color: #ff4d6a; }
+  .tb-sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .tb-word { font-size: 21px; font-weight: 700; color: #fff; line-height: 1.45; margin-top: 6px; white-space: pre-wrap; }
+  .tb-word.editable { cursor: pointer; }
+  .tb-word.editable:hover { color: #ffd7de; }
+
+  .tb-btns { display: flex; gap: 6px; padding: 10px 12px; border-top: 1px solid rgba(255,255,255,0.12); flex-wrap: wrap; }
+  .tb-btn {
+    flex: 1; min-width: 70px; padding: 9px 4px; border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 8px; background: rgba(255,255,255,0.06); color: #fff;
+    font-size: 13px; font-weight: 600; cursor: pointer; text-align: center;
+    font-family: inherit; transition: background 0.15s;
+  }
+  .tb-btn:hover { background: rgba(255,255,255,0.15); }
+  .tb-btn.primary { background: #e94560; border-color: #e94560; }
+  .tb-btn.primary:hover { background: #d6385a; }
+  .tb-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* 悬浮小工具板 */
+  .tb-float {
+    display: none; position: fixed; top: 80px; right: 20px; z-index: 300;
+    width: 190px; background: rgba(20,20,38,0.92); border: 1px solid rgba(233,69,96,0.5);
+    border-radius: 12px; box-shadow: 0 6px 24px rgba(0,0,0,0.5); overflow: hidden;
+  }
+  body.tb-on .tb-float { display: block; }
+  .tb-float-head {
+    padding: 8px 12px; background: rgba(233,69,96,0.85); color: #fff;
+    font-size: 13px; font-weight: 700; cursor: move; text-align: center;
+  }
+  .tb-float-body { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .tb-float-body .tb-btn { min-width: 0; padding: 8px 4px; font-size: 12px; }
+
+  /* 工具箱弹窗 */
+  .tb-modal {
+    display: none; position: fixed; inset: 0; z-index: 400;
+    background: rgba(0,0,0,0.6); align-items: center; justify-content: center;
+  }
+  .tb-modal.open { display: flex; }
+  .tb-modal-box {
+    width: 440px; max-width: 92vw; max-height: 86vh; overflow-y: auto;
+    background: #16213e; border: 1px solid rgba(233,69,96,0.6);
+    border-radius: 14px; padding: 20px; color: #fff;
+  }
+  .tb-modal-box h3 { font-size: 18px; color: #e94560; margin-bottom: 14px; }
+  .tb-modal-box h4 { font-size: 14px; color: rgba(255,255,255,0.75); margin: 14px 0 8px; }
+  .tb-opt {
+    display: block; width: 100%; text-align: left; margin-bottom: 8px;
+    padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;
+    background: rgba(255,255,255,0.06); color: #fff; font-size: 14px; cursor: pointer; font-family: inherit;
+  }
+  .tb-opt:hover { background: rgba(255,255,255,0.13); }
+  .tb-opt.sel { background: #e94560; border-color: #e94560; font-weight: 700; }
+  .tb-min-input {
+    width: 100%; margin-top: 6px; padding: 8px 10px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.1);
+    color: #fff; font-size: 14px; outline: none; font-family: inherit;
+  }
+  .tb-modal-btns { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; }
+  .tb-modal-btns button {
+    padding: 9px 22px; border-radius: 8px; border: none; cursor: pointer;
+    font-size: 14px; font-weight: 700; font-family: inherit;
+  }
+  .tb-modal-btns .cancel { background: rgba(255,255,255,0.15); color: #fff; }
+  .tb-modal-btns .ok { background: #e94560; color: #fff; }
+  .tb-del-btn {
+    padding: 6px 14px; border-radius: 6px; border: 1px solid rgba(255,77,106,0.6);
+    background: transparent; color: #ff7a90; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+
   @media (max-width: 768px) {
     .sidebar {
       position: fixed; top: 0; left: 0; bottom: 0;
@@ -356,6 +461,7 @@
     .toolbar .divider { height: 20px; margin: 0 2px; }
     .tb-toolbar-toggle { width: 26px; height: 26px; right: 8px; }
     .show-toolbar-btn { height: 28px; font-size: 11px; padding: 0 10px; }
+    .tb-panel, .tb-resizer, .tb-float, .tb-modal { display: none !important; }
   }
 </style>
 </head>
@@ -453,6 +559,69 @@
       <iframe id="originalFrame" src="" allowfullscreen="true" allow="autoplay; encrypted-media"></iframe>
     </div>
   </div>
+</div>
+
+<!-- ===== 直播工具箱（电脑版 Ctrl+H） ===== -->
+<div class="tb-resizer" id="tbResizer"></div>
+<div class="tb-panel" id="tbPanel">
+  <div class="tb-rows">
+    <div class="tb-row tb-split">
+      <div class="tb-half">
+        <div class="tb-label">已播</div>
+        <div class="tb-time" id="tbLiveTime">00:00:00</div>
+      </div>
+      <div class="tb-half">
+        <div class="tb-label red">下次营销（每<span id="tbMktIntervalShow">15</span>分钟）</div>
+        <div class="tb-time" id="tbMktTime">还有 15:00</div>
+      </div>
+    </div>
+    <div class="tb-row line tb-split">
+      <div class="tb-half">
+        <div class="tb-label">当前环节</div>
+        <div class="tb-name" id="tbCurName">未设置</div>
+        <div class="tb-time" id="tbCurTime">--:--</div>
+      </div>
+      <div class="tb-half">
+        <div class="tb-label">下一环节</div>
+        <div class="tb-name" id="tbNextName">未设置</div>
+        <div class="tb-time" id="tbNextTime">--:--</div>
+      </div>
+    </div>
+    <div class="tb-row line">
+      <div class="tb-label">内容话术提醒</div>
+      <div class="tb-word editable" id="tbContentWord" title="点击修改">同学们把扶勾咬三步跟着我做一遍，咬字位置往前挂，声音立刻亮</div>
+    </div>
+    <div class="tb-row line">
+      <div class="tb-label red">营销话术提醒</div>
+      <div class="tb-word editable" id="tbMktWord" title="点击修改">进群唱一段，我帮你挑最适合你的歌，适合唱谁的，这样学才不会偏，唱错了嗓子还受不了</div>
+    </div>
+    <div class="tb-btns">
+      <button class="tb-btn primary" id="tbBtnLive">开播</button>
+      <button class="tb-btn" id="tbBtnChange">环节变更</button>
+      <button class="tb-btn" id="tbBtnCur">当前环节</button>
+      <button class="tb-btn" id="tbBtnNext">下一环节</button>
+      <button class="tb-btn" id="tbBtnMktReset">营销重置</button>
+      <button class="tb-btn" id="tbBtnWord">话术修改</button>
+    </div>
+  </div>
+</div>
+
+<!-- 悬浮小工具板 -->
+<div class="tb-float" id="tbFloat">
+  <div class="tb-float-head" id="tbFloatHead">工具箱（可拖动）</div>
+  <div class="tb-float-body">
+    <button class="tb-btn primary" data-fb="live">开播/暂停</button>
+    <button class="tb-btn" data-fb="change">环节变更</button>
+    <button class="tb-btn" data-fb="cur">当前环节</button>
+    <button class="tb-btn" data-fb="next">下一环节</button>
+    <button class="tb-btn" data-fb="mkt">营销重置</button>
+    <button class="tb-btn" data-fb="word">话术修改</button>
+  </div>
+</div>
+
+<!-- 工具箱通用弹窗 -->
+<div class="tb-modal" id="tbModal">
+  <div class="tb-modal-box" id="tbModalBox"></div>
 </div>
 
 <script>
@@ -1119,11 +1288,338 @@
   // ESC关闭
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-      if (originalModal.classList.contains('open')) closeOriginal();
+      if (tbModal.classList.contains('open')) { closeTbModal(); }
+      else if (originalModal.classList.contains('open')) closeOriginal();
       else if (videoModal.classList.contains('open')) closeVideo();
       else if (videoListPanel.classList.contains('open')) closeVideoList();
     }
   });
+
+  // ================= 直播工具箱（仅电脑版，Ctrl+H） =================
+  var tbPresets = [
+    { name: '直播开播互动', mins: 10 },
+    { name: '练声环节', mins: 20 },
+    { name: '歌曲教唱', mins: 50 }
+  ];
+  var tbState = {
+    liveRunning: false, liveStart: 0, liveAccum: 0,
+    cur: null, next: null,
+    mktInterval: 15, mktStart: 0, mktNotified: false
+  };
+  var tbContentWord = '同学们把扶勾咬三步跟着我做一遍，咬字位置往前挂，声音立刻亮';
+  var tbMktWord = '进群唱一段，我帮你挑最适合你的歌，适合唱谁的，这样学才不会偏，唱错了嗓子还受不了';
+
+  function tbSave() {
+    try {
+      localStorage.setItem('he_toolbox_state', JSON.stringify(tbState));
+      localStorage.setItem('he_toolbox_words', JSON.stringify({ content: tbContentWord, mkt: tbMktWord }));
+    } catch (e) {}
+  }
+  function tbLoad() {
+    try {
+      var s = localStorage.getItem('he_toolbox_state');
+      if (s) tbState = Object.assign(tbState, JSON.parse(s));
+      var w = localStorage.getItem('he_toolbox_words');
+      if (w) { w = JSON.parse(w); tbContentWord = w.content || tbContentWord; tbMktWord = w.mkt || tbMktWord; }
+    } catch (e) {}
+    if (typeof tbState.mktStart !== 'number' || tbState.mktStart > 1e12) tbState.mktStart = 0;
+    tbState.liveRunning = false;
+  }
+
+  function fmtClock(sec) {
+    sec = Math.max(0, Math.floor(sec));
+    var h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+  function fmtMM(sec) {
+    var neg = sec < 0; sec = Math.abs(Math.floor(sec));
+    var m = Math.floor(sec / 60), s = sec % 60;
+    return (neg ? '-' : '') + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+  function fmtHM(ts) {
+    var d = new Date(ts);
+    return (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
+  }
+
+  var tbPanel = document.getElementById('tbPanel');
+  var tbModal = document.getElementById('tbModal');
+  var tbModalBox = document.getElementById('tbModalBox');
+
+  function tbLiveElapsed() {
+    return tbState.liveAccum + (tbState.liveRunning ? Date.now() - tbState.liveStart : 0);
+  }
+  function tbMktRemain() {
+    if (!tbState.liveStart && !tbState.liveAccum) return tbState.mktInterval * 60;
+    var elapsedSec = tbLiveElapsed() / 1000;
+    var cycle = tbState.mktInterval * 60;
+    var rem = cycle - (elapsedSec - tbState.mktStart / 1000) % cycle;
+    return rem > cycle ? cycle : rem;
+  }
+  function tbBeep() {
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      for (var i = 0; i < 3; i++) {
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = 880; o.type = 'sine';
+        var t = ctx.currentTime + i * 0.5;
+        g.gain.setValueAtTime(0.001, t);
+        g.gain.exponentialRampToValueAtTime(0.3, t + 0.05);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+        o.start(t); o.stop(t + 0.4);
+      }
+    } catch (e) {}
+  }
+
+  // ===== 弹窗 =====
+  function openTb(html) { tbModalBox.innerHTML = html; tbModal.classList.add('open'); }
+  function closeTbModal() { tbModal.classList.remove('open'); tbModalBox.innerHTML = ''; }
+  tbModal.addEventListener('click', function(e) { if (e.target === tbModal) closeTbModal(); });
+
+  function stepPickerHtml(title) {
+    var h = '<h3>' + title + '</h3>';
+    tbPresets.forEach(function(p, i) {
+      h += '<button class="tb-opt" data-name="' + p.name + '" data-mins="' + p.mins + '">' + (i + 1) + '. ' + p.name + '（' + p.mins + '分钟）</button>';
+    });
+    h += '<button class="tb-opt" data-custom="1">其他（自己填）</button>' +
+      '<div id="tbCustomBox" style="display:none;margin-top:8px;">' +
+      '<input class="tb-min-input" id="tbCustomName" placeholder="环节名称，如：连麦点评">' +
+      '<input class="tb-min-input" id="tbCustomMins" type="number" min="1" placeholder="时长（分钟）">' +
+      '</div>' +
+      '<div class="tb-modal-btns"><button class="cancel" onclick="closeTbModal()">取消</button>' +
+      '<button class="ok" id="tbStepOk">确认</button></div>';
+    return h;
+  }
+  function bindStepPicker(cb) {
+    var sel = null;
+    tbModalBox.querySelectorAll('.tb-opt').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        tbModalBox.querySelectorAll('.tb-opt').forEach(function(b) { b.classList.remove('sel'); });
+        btn.classList.add('sel');
+        document.getElementById('tbCustomBox').style.display = btn.dataset.custom ? 'block' : 'none';
+        if (!btn.dataset.custom) sel = { name: btn.dataset.name, mins: parseInt(btn.dataset.mins, 10) };
+        else sel = null;
+      });
+    });
+    document.getElementById('tbStepOk').addEventListener('click', function() {
+      var customBtn = tbModalBox.querySelector('[data-custom]');
+      if (customBtn.classList.contains('sel')) {
+        var n = document.getElementById('tbCustomName').value.trim();
+        var m = parseInt(document.getElementById('tbCustomMins').value, 10);
+        if (!n || !m || m <= 0) { alert('请填环节名称和分钟数'); return; }
+        sel = { name: n, mins: m };
+      }
+      if (!sel) { alert('请先选一个环节'); return; }
+      cb(sel);
+      closeTbModal();
+    });
+  }
+
+  function openSetStep(which) {
+    openTb(stepPickerHtml(which === 'cur' ? '设置当前环节' : '设置下一环节'));
+    bindStepPicker(function(sel) {
+      if (which === 'cur') {
+        if (!tbState.liveStart && !tbState.liveAccum) { tbToggleLive(true); }
+        tbState.cur = { name: sel.name, mins: sel.mins, liveBase: tbLiveElapsed(), done: false };
+      } else {
+        tbState.next = { name: sel.name, mins: sel.mins };
+      }
+      tbSave(); tbRender();
+    });
+  }
+
+  function openChange() {
+    var h = '<h3>环节变更</h3>' +
+      '<button class="tb-opt" data-go="ok">选项1 · 顺利进入：下一环节自动变当前环节</button>' +
+      '<button class="tb-opt" data-go="delay">选项2 · 未进入：当前环节延迟时间</button>' +
+      '<div id="tbDelayBox" style="display:none;margin-top:8px;">' +
+      '<input class="tb-min-input" id="tbDelayMins" type="number" min="1" value="5" placeholder="延迟分钟数">' +
+      '</div>' +
+      '<div style="margin-top:14px;"><button class="tb-del-btn" id="tbClearNext">清除下一环节</button></div>' +
+      '<div class="tb-modal-btns"><button class="cancel" onclick="closeTbModal()">取消</button></div>';
+    openTb(h);
+    tbModalBox.querySelectorAll('.tb-opt').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        tbModalBox.querySelectorAll('.tb-opt').forEach(function(b) { b.classList.remove('sel'); });
+        btn.classList.add('sel');
+        document.getElementById('tbDelayBox').style.display = btn.dataset.go === 'delay' ? 'block' : 'none';
+        if (btn.dataset.go === 'ok') {
+          if (!tbState.next) { alert('还没设置下一环节'); return; }
+          tbState.cur = { name: tbState.next.name, mins: tbState.next.mins, liveBase: tbLiveElapsed(), done: false };
+          tbState.next = null;
+          tbSave(); tbRender(); closeTbModal();
+        } else {
+          var m = parseInt(document.getElementById('tbDelayMins').value, 10);
+          if (!m || m <= 0) { alert('填延迟分钟数'); return; }
+          if (!tbState.cur) { alert('当前还没有环节'); return; }
+          tbState.cur.liveBase -= m * 60 * 1000;
+          tbState.cur.done = false;
+          tbSave(); tbRender(); closeTbModal();
+        }
+      });
+    });
+    document.getElementById('tbClearNext').addEventListener('click', function() {
+      tbState.next = null; tbSave(); tbRender(); closeTbModal();
+    });
+  }
+
+  function openWords() {
+    var h = '<h3>话术修改</h3>' +
+      '<h4>直播内容话术</h4>' +
+      '<textarea class="tb-min-input" id="tbEditContent" rows="3" style="resize:vertical;">' + tbContentWord.replace(/</g, '&lt;') + '</textarea>' +
+      '<h4>营销话术</h4>' +
+      '<textarea class="tb-min-input" id="tbEditMkt" rows="3" style="resize:vertical;">' + tbMktWord.replace(/</g, '&lt;') + '</textarea>' +
+      '<h4>营销间隔（分钟）</h4>' +
+      '<input class="tb-min-input" id="tbEditInterval" type="number" min="1" value="' + tbState.mktInterval + '">' +
+      '<div class="tb-modal-btns"><button class="cancel" onclick="closeTbModal()">取消</button>' +
+      '<button class="ok" id="tbWordOk">保存</button></div>';
+    openTb(h);
+    document.getElementById('tbWordOk').addEventListener('click', function() {
+      tbContentWord = document.getElementById('tbEditContent').value.trim() || tbContentWord;
+      tbMktWord = document.getElementById('tbEditMkt').value.trim() || tbMktWord;
+      var iv = parseInt(document.getElementById('tbEditInterval').value, 10);
+      if (iv && iv > 0) tbState.mktInterval = iv;
+      tbSave(); tbRender(); closeTbModal();
+    });
+  }
+
+  // ===== 开播/暂停 =====
+  function tbToggleLive(forceStart) {
+    if (tbState.liveRunning && !forceStart) {
+      tbState.liveAccum += Date.now() - tbState.liveStart;
+      tbState.liveStart = 0; tbState.liveRunning = false;
+    } else {
+      tbState.liveStart = Date.now();
+      tbState.liveRunning = true;
+    }
+    tbSave(); tbRender();
+  }
+
+  function mktReset() {
+    tbState.mktStart = tbLiveElapsed();
+    tbState.mktNotified = false;
+    tbSave(); tbRender();
+  }
+
+  // ===== 渲染 =====
+  function tbRender() {
+    document.getElementById('tbLiveTime').textContent = fmtClock(tbLiveElapsed() / 1000);
+    document.getElementById('tbMktIntervalShow').textContent = tbState.mktInterval;
+    document.getElementById('tbContentWord').textContent = tbContentWord;
+    document.getElementById('tbMktWord').textContent = tbMktWord;
+    document.getElementById('tbBtnLive').textContent = tbState.liveRunning ? '暂停' : (tbState.liveAccum || tbState.liveStart ? '继续' : '开播');
+
+    var mktRemain = tbMktRemain() / 1000;
+    var mktEl = document.getElementById('tbMktTime');
+    if (mktRemain <= 0) {
+      mktEl.textContent = '该营销了';
+      mktEl.classList.add('over');
+      if (!tbState.mktNotified && tbState.liveRunning) { tbState.mktNotified = true; tbBeep(); tbSave(); }
+    } else {
+      mktEl.textContent = '还有 ' + fmtMM(mktRemain);
+      mktEl.classList.toggle('over', mktRemain < 60);
+      if (mktRemain > 60) tbState.mktNotified = false;
+    }
+
+    var curName = document.getElementById('tbCurName'), curTime = document.getElementById('tbCurTime');
+    var nextName = document.getElementById('tbNextName'), nextTime = document.getElementById('tbNextTime');
+    if (tbState.cur) {
+      var curRemain = tbState.cur.mins * 60 - (tbLiveElapsed() - (tbState.cur.liveBase || 0)) / 1000;
+      curName.textContent = tbState.cur.name;
+      var curOver = curRemain < 0;
+      curName.classList.toggle('over', curOver);
+      curTime.textContent = (curOver ? '超时 ' : '预计 ') + fmtMM(curRemain);
+      curTime.classList.toggle('over', curOver);
+    } else {
+      curName.textContent = '未设置'; curName.classList.remove('over');
+      curTime.textContent = '--:--'; curTime.classList.remove('over');
+    }
+    if (tbState.next) {
+      nextName.textContent = tbState.next.name;
+      nextName.classList.remove('over');
+      nextTime.textContent = '预计 ' + tbState.next.mins + '分钟';
+      nextTime.classList.remove('over');
+    } else {
+      nextName.textContent = '未设置'; nextName.classList.remove('over');
+      nextTime.textContent = '--:--'; nextTime.classList.remove('over');
+    }
+  }
+
+  // ===== 事件绑定 =====
+  document.getElementById('tbBtnLive').addEventListener('click', function() { tbToggleLive(false); });
+  document.getElementById('tbBtnChange').addEventListener('click', openChange);
+  document.getElementById('tbBtnCur').addEventListener('click', function() { openSetStep('cur'); });
+  document.getElementById('tbBtnNext').addEventListener('click', function() { openSetStep('next'); });
+  document.getElementById('tbBtnMktReset').addEventListener('click', mktReset);
+  document.getElementById('tbBtnWord').addEventListener('click', openWords);
+  document.getElementById('tbContentWord').addEventListener('click', openWords);
+  document.getElementById('tbMktWord').addEventListener('click', openWords);
+
+  document.querySelectorAll('#tbFloat [data-fb]').forEach(function(b) {
+    b.addEventListener('click', function() {
+      var act = b.dataset.fb;
+      if (act === 'live') tbToggleLive(false);
+      else if (act === 'change') openChange();
+      else if (act === 'cur') openSetStep('cur');
+      else if (act === 'next') openSetStep('next');
+      else if (act === 'mkt') mktReset();
+      else if (act === 'word') openWords();
+    });
+  });
+
+  // 悬浮窗拖动
+  (function() {
+    var head = document.getElementById('tbFloatHead'), float = document.getElementById('tbFloat');
+    var dragging = false, ox = 0, oy = 0;
+    head.addEventListener('mousedown', function(e) {
+      dragging = true;
+      var r = float.getBoundingClientRect();
+      ox = e.clientX - r.left; oy = e.clientY - r.top;
+      float.style.right = 'auto'; e.preventDefault();
+    });
+    document.addEventListener('mousemove', function(e) {
+      if (!dragging) return;
+      var x = Math.max(0, Math.min(window.innerWidth - 100, e.clientX - ox));
+      var y = Math.max(0, Math.min(window.innerHeight - 40, e.clientY - oy));
+      float.style.left = x + 'px'; float.style.top = y + 'px';
+    });
+    document.addEventListener('mouseup', function() { dragging = false; });
+  })();
+
+  // 工具箱宽度拖动
+  (function() {
+    var rz = document.getElementById('tbResizer'), dragging = false;
+    rz.addEventListener('mousedown', function(e) {
+      if (window.innerWidth <= 768) return;
+      dragging = true; rz.classList.add('dragging');
+      document.body.style.cursor = 'col-resize'; e.preventDefault();
+    });
+    document.addEventListener('mousemove', function(e) {
+      if (!dragging) return;
+      var w = Math.max(280, Math.min(window.innerWidth * 0.6, window.innerWidth - e.clientX));
+      tbPanel.style.width = w + 'px';
+    });
+    document.addEventListener('mouseup', function() {
+      if (dragging) { dragging = false; rz.classList.remove('dragging'); document.body.style.cursor = ''; }
+    });
+  })();
+
+  // Ctrl+H 开关
+  function tbToggle() {
+    if (window.innerWidth <= 768) return;
+    document.body.classList.toggle('tb-on');
+    if (document.body.classList.contains('tb-on')) closeSidebar();
+    setTimeout(function() { window.dispatchEvent(new Event('resize')); }, 60);
+  }
+  document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'h' || e.key === 'H')) {
+      e.preventDefault(); tbToggle();
+    }
+  });
+
+  tbLoad();
+  tbRender();
+  setInterval(tbRender, 1000);
 </script>
 </body>
 </html>
