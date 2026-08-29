@@ -430,6 +430,15 @@
     padding: 6px 14px; border-radius: 6px; border: 1px solid rgba(255,77,106,0.6);
     background: transparent; color: #ff7a90; font-size: 13px; cursor: pointer; font-family: inherit;
   }
+  .tb-toast {
+    position: fixed; bottom: 42px; left: 50%; z-index: 500;
+    transform: translateX(-50%) translateY(16px);
+    background: rgba(233,69,96,0.95); color: #fff;
+    padding: 10px 26px; border-radius: 24px; font-size: 15px; font-weight: 700;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s;
+    display: none; box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+  }
+  .tb-toast.show { display: block; opacity: 1; transform: translateX(-50%) translateY(0); }
 
   @media (max-width: 768px) {
     .sidebar {
@@ -620,6 +629,9 @@
 <div class="tb-modal" id="tbModal">
   <div class="tb-modal-box" id="tbModalBox"></div>
 </div>
+
+<!-- 撤回提示条 -->
+<div class="tb-toast" id="tbToast"></div>
 
 <script>
   var songs = [
@@ -1301,7 +1313,8 @@
   var tbState = {
     liveRunning: false, liveStart: 0, liveAccum: 0,
     cur: null, next: null,
-    mktInterval: 15, mktStart: 0, mktNotified: false
+    mktInterval: 15, mktStart: 0, mktNotified: false,
+    sizes: { content: 22, mkt: 22 }
   };
   var tbContentWord = '同学们把扶勾咬三步跟着我做一遍，咬字位置往前挂，声音立刻亮';
   var tbMktWord = '进群唱一段，我帮你挑最适合你的歌，适合唱谁的，这样学才不会偏，唱错了嗓子还受不了';
@@ -1321,6 +1334,29 @@
     } catch (e) {}
     if (typeof tbState.mktStart !== 'number' || tbState.mktStart > 1e12) tbState.mktStart = 0;
     tbState.liveRunning = false;
+  }
+
+  function tbPushHistory() {
+    if (!window.tbHist) tbHist = [];
+    tbHist.push(JSON.stringify({ st: tbState, w: { content: tbContentWord, mkt: tbMktWord } }));
+    if (tbHist.length > 60) tbHist.shift();
+  }
+  function tbUndo() {
+    if (!window.tbHist || !tbHist.length) { tbToast('没有可撤回的操作'); return; }
+    var snap = JSON.parse(tbHist.pop());
+    tbState = Object.assign(tbState, snap.st);
+    tbState.liveRunning = false;
+    if (snap.w) { tbContentWord = snap.w.content || tbContentWord; tbMktWord = snap.w.mkt || tbMktWord; }
+    tbSave(); tbApplyLayout(); tbRender();
+    tbToast('已撤回上一步');
+  }
+  var tbToastTimer = null;
+  function tbToast(msg) {
+    var t = document.getElementById('tbToast');
+    if (!t) return;
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(tbToastTimer);
+    tbToastTimer = setTimeout(function() { t.classList.remove('show'); }, 1600);
   }
 
   function fmtClock(sec) {
@@ -1417,6 +1453,7 @@
   function openSetStep(which) {
     openTb(stepPickerHtml(which === 'cur' ? '设置当前环节' : '设置下一环节'));
     bindStepPicker(function(sel) {
+      tbPushHistory();
       if (which === 'cur') {
         if (!tbState.liveStart && !tbState.liveAccum) { tbToggleLive(true); }
         tbState.cur = { name: sel.name, mins: sel.mins, liveBase: tbLiveElapsed(), done: false };
@@ -1444,6 +1481,7 @@
         document.getElementById('tbDelayBox').style.display = btn.dataset.go === 'delay' ? 'block' : 'none';
         if (btn.dataset.go === 'ok') {
           if (!tbState.next) { alert('还没设置下一环节'); return; }
+          tbPushHistory();
           tbState.cur = { name: tbState.next.name, mins: tbState.next.mins, liveBase: tbLiveElapsed(), done: false };
           tbState.next = null;
           tbSave(); tbRender(); closeTbModal();
@@ -1451,6 +1489,7 @@
           var m = parseInt(document.getElementById('tbDelayMins').value, 10);
           if (!m || m <= 0) { alert('填延迟分钟数'); return; }
           if (!tbState.cur) { alert('当前还没有环节'); return; }
+          tbPushHistory();
           tbState.cur.liveBase -= m * 60 * 1000;
           tbState.cur.done = false;
           tbSave(); tbRender(); closeTbModal();
@@ -1458,28 +1497,53 @@
       });
     });
     document.getElementById('tbClearNext').addEventListener('click', function() {
+      tbPushHistory();
       tbState.next = null; tbSave(); tbRender(); closeTbModal();
     });
   }
 
   function openWords() {
     var h = '<h3>话术修改</h3>' +
-      '<h4>直播内容话术</h4>' +
-      '<textarea class="tb-min-input" id="tbEditContent" rows="3" style="resize:vertical;">' + tbContentWord.replace(/</g, '&lt;') + '</textarea>' +
-      '<h4>营销话术</h4>' +
-      '<textarea class="tb-min-input" id="tbEditMkt" rows="3" style="resize:vertical;">' + tbMktWord.replace(/</g, '&lt;') + '</textarea>' +
+      '<h4>直播内容话术 <span style="font-size:12px;color:rgba(255,255,255,0.5);">（换行直接按回车）</span></h4>' +
+      '<textarea class="tb-min-input" id="tbEditContent" rows="4" style="resize:vertical;line-height:1.5;font-size:' + (tbState.sizes.content || 22) + 'px;white-space:pre-wrap;">' + tbContentWord.replace(/</g, '&lt;') + '</textarea>' +
+      '<div style="margin-top:6px;font-size:13px;color:rgba(255,255,255,0.7);">内容字号：<button type="button" id="tbSizeContentDown" style="width:30px;height:26px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;cursor:pointer;">A-</button> <span id="tbSizeContentShow" style="display:inline-block;width:44px;text-align:center;">' + (tbState.sizes.content || 22) + '</span> <button type="button" id="tbSizeContentUp" style="width:30px;height:26px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;cursor:pointer;">A+</button></div>' +
+      '<h4>营销话术 <span style="font-size:12px;color:rgba(255,255,255,0.5);">（换行直接按回车）</span></h4>' +
+      '<textarea class="tb-min-input" id="tbEditMkt" rows="4" style="resize:vertical;line-height:1.5;font-size:' + (tbState.sizes.mkt || 22) + 'px;white-space:pre-wrap;">' + tbMktWord.replace(/</g, '&lt;') + '</textarea>' +
+      '<div style="margin-top:6px;font-size:13px;color:rgba(255,255,255,0.7);">营销字号：<button type="button" id="tbSizeMktDown" style="width:30px;height:26px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;cursor:pointer;">A-</button> <span id="tbSizeMktShow" style="display:inline-block;width:44px;text-align:center;">' + (tbState.sizes.mkt || 22) + '</span> <button type="button" id="tbSizeMktUp" style="width:30px;height:26px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;cursor:pointer;">A+</button></div>' +
       '<h4>营销间隔（分钟）</h4>' +
       '<input class="tb-min-input" id="tbEditInterval" type="number" min="1" value="' + tbState.mktInterval + '">' +
       '<div class="tb-modal-btns"><button class="cancel" onclick="closeTbModal()">取消</button>' +
       '<button class="ok" id="tbWordOk">保存</button></div>';
     openTb(h);
-    document.getElementById('tbWordOk').addEventListener('click', function() {
-      tbContentWord = document.getElementById('tbEditContent').value.trim() || tbContentWord;
-      tbMktWord = document.getElementById('tbEditMkt').value.trim() || tbMktWord;
+    function doSave() {
+      var newContent = document.getElementById('tbEditContent').value;
+      var newMkt = document.getElementById('tbEditMkt').value;
       var iv = parseInt(document.getElementById('tbEditInterval').value, 10);
+      var changed = false;
+      if (newContent !== tbContentWord || newMkt !== tbMktWord) changed = true;
+      if (iv && iv > 0 && iv !== tbState.mktInterval) changed = true;
+      if (changed) tbPushHistory();
+      tbContentWord = newContent.trim() ? newContent : tbContentWord;
+      tbMktWord = newMkt.trim() ? newMkt : tbMktWord;
       if (iv && iv > 0) tbState.mktInterval = iv;
       tbSave(); tbRender(); closeTbModal();
-    });
+    }
+    document.getElementById('tbWordOk').addEventListener('click', doSave);
+    function bindSize(which) {
+      var up = document.getElementById('tbSize' + which + 'Up'), dn = document.getElementById('tbSize' + which + 'Down');
+      var show = document.getElementById('tbSize' + which + 'Show');
+      var ta = document.getElementById(which === 'Content' ? 'tbEditContent' : 'tbEditMkt');
+      var key = which === 'Content' ? 'content' : 'mkt';
+      up.addEventListener('click', function() {
+        var v = Math.min(40, (tbState.sizes[key] || 22) + 1);
+        tbState.sizes[key] = v; show.textContent = v; ta.style.fontSize = v + 'px'; tbSave(); tbRender();
+      });
+      dn.addEventListener('click', function() {
+        var v = Math.max(14, (tbState.sizes[key] || 22) - 1);
+        tbState.sizes[key] = v; show.textContent = v; ta.style.fontSize = v + 'px'; tbSave(); tbRender();
+      });
+    }
+    bindSize('Content'); bindSize('Mkt');
   }
 
   // ===== 开播/暂停 =====
@@ -1495,6 +1559,7 @@
   }
 
   function mktReset() {
+    tbPushHistory();
     tbState.mktStart = tbLiveElapsed();
     tbState.mktNotified = false;
     tbSave(); tbRender();
@@ -1506,6 +1571,8 @@
     document.getElementById('tbMktIntervalShow').textContent = tbState.mktInterval;
     document.getElementById('tbContentWord').textContent = tbContentWord;
     document.getElementById('tbMktWord').textContent = tbMktWord;
+    document.getElementById('tbContentWord').style.fontSize = (tbState.sizes.content || 22) + 'px';
+    document.getElementById('tbMktWord').style.fontSize = (tbState.sizes.mkt || 22) + 'px';
     var liveBtn = document.querySelector('#tbFloat [data-fb="live"]');
     if (liveBtn) liveBtn.textContent = tbState.liveRunning ? '暂停' : ((tbState.liveAccum || tbState.liveStart) ? '继续' : '开播/暂停');
 
@@ -1516,7 +1583,7 @@
       mktEl.classList.add('over');
       if (!tbState.mktNotified && tbState.liveRunning) { tbState.mktNotified = true; tbBeep(); tbSave(); }
     } else {
-      mktEl.textContent = '还有 ' + fmtMM(mktRemain);
+      mktEl.textContent = fmtMM(mktRemain);
       mktEl.classList.toggle('over', mktRemain < 60);
       if (mktRemain > 60) tbState.mktNotified = false;
     }
@@ -1528,7 +1595,7 @@
       curName.textContent = tbState.cur.name;
       var curOver = curRemain < 0;
       curName.classList.toggle('over', curOver);
-      curTime.textContent = (curOver ? '超时 ' : '预计 ') + fmtMM(curRemain);
+      curTime.textContent = (curOver ? '超时 ' : '') + fmtMM(curRemain);
       curTime.classList.toggle('over', curOver);
     } else {
       curName.textContent = '未设置'; curName.classList.remove('over');
@@ -1537,7 +1604,7 @@
     if (tbState.next) {
       nextName.textContent = tbState.next.name;
       nextName.classList.remove('over');
-      nextTime.textContent = '预计 ' + tbState.next.mins + '分钟';
+      nextTime.textContent = tbState.next.mins + '分钟';
       nextTime.classList.remove('over');
     } else {
       nextName.textContent = '未设置'; nextName.classList.remove('over');
@@ -1678,8 +1745,21 @@
     setTimeout(function() { window.dispatchEvent(new Event('resize')); }, 60);
   }
   document.addEventListener('keydown', function(e) {
-    if ((e.ctrlKey || e.metaKey) && (e.key === 'h' || e.key === 'H')) {
-      e.preventDefault(); tbToggle();
+    var tag = (e.target.tagName || '').toLowerCase();
+    var inModal = tbModal.classList.contains('open');
+    // Ctrl/Cmd + 组合键
+    if (e.ctrlKey || e.metaKey) {
+      var k = e.key.toLowerCase();
+      if (k === 'h') { e.preventDefault(); tbToggle(); return; }
+      if (k === 'z' && tag !== 'input' && tag !== 'textarea' && !inModal && document.body.classList.contains('tb-on')) {
+        e.preventDefault(); tbUndo(); return;
+      }
+      return;
+    }
+    // 弹窗内回车 = 点确认（话术框里回车是换行，不触发）
+    if (inModal && e.key === 'Enter' && tag !== 'textarea') {
+      var ok = document.getElementById('tbStepOk') || document.getElementById('tbWordOk');
+      if (ok) { e.preventDefault(); ok.click(); }
     }
   });
 
