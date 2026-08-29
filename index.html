@@ -342,7 +342,7 @@
     width: 380px; min-width: 280px; max-width: 60vw;
     height: 100vh; height: 100dvh;
     background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-    color: #fff; overflow: hidden; z-index: 90;
+    color: #fff; overflow: hidden; z-index: 90; user-select: none;
   }
   body.tb-on .tb-panel { display: flex; }
   body.tb-on .tb-resizer { display: block; }
@@ -439,6 +439,21 @@
     display: none; box-shadow: 0 4px 18px rgba(0,0,0,0.4);
   }
   .tb-toast.show { display: block; opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .tb-sizer {
+    position: fixed; z-index: 460; display: none;
+    background: rgba(22,33,62,0.97); border: 1px solid rgba(233,69,96,0.7);
+    border-radius: 10px; padding: 8px 10px; align-items: center; gap: 8px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5); font-size: 13px; color: #fff;
+  }
+  .tb-sizer.open { display: flex; }
+  .tb-sizer button {
+    width: 32px; height: 28px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.1); color: #fff; cursor: pointer; font-size: 14px; font-weight: 700; font-family: inherit;
+  }
+  .tb-sizer button:hover { background: rgba(233,69,96,0.6); }
+  .tb-sizer .val { min-width: 42px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tb-sizer .tip { color: rgba(255,255,255,0.55); font-size: 12px; }
 
   @media (max-width: 768px) {
     .sidebar {
@@ -632,6 +647,14 @@
 
 <!-- 撤回提示条 -->
 <div class="tb-toast" id="tbToast"></div>
+
+<!-- 双击调字号小工具条 -->
+<div class="tb-sizer" id="tbSizer">
+  <span class="tip" id="tbSizerName">字号</span>
+  <button id="tbSizerDown" type="button">A-</button>
+  <span class="val" id="tbSizerVal">100%</span>
+  <button id="tbSizerUp" type="button">A+</button>
+</div>
 
 <script>
   var songs = [
@@ -1314,7 +1337,8 @@
     liveRunning: false, liveStart: 0, liveAccum: 0,
     cur: null, next: null,
     mktInterval: 15, mktStart: 0, mktNotified: false,
-    sizes: { content: 22, mkt: 22 }
+    sizes: { content: 22, mkt: 22 },
+    scales: { live: 1, mkt: 1, cur: 1, next: 1 }
   };
   var tbContentWord = '同学们把扶勾咬三步跟着我做一遍，咬字位置往前挂，声音立刻亮';
   var tbMktWord = '进群唱一段，我帮你挑最适合你的歌，适合唱谁的，这样学才不会偏，唱错了嗓子还受不了';
@@ -1571,8 +1595,7 @@
     document.getElementById('tbMktIntervalShow').textContent = tbState.mktInterval;
     document.getElementById('tbContentWord').textContent = tbContentWord;
     document.getElementById('tbMktWord').textContent = tbMktWord;
-    document.getElementById('tbContentWord').style.fontSize = (tbState.sizes.content || 22) + 'px';
-    document.getElementById('tbMktWord').style.fontSize = (tbState.sizes.mkt || 22) + 'px';
+    tbApplySizes();
     var liveBtn = document.querySelector('#tbFloat [data-fb="live"]');
     if (liveBtn) liveBtn.textContent = tbState.liveRunning ? '暂停' : ((tbState.liveAccum || tbState.liveStart) ? '继续' : '开播/暂停');
 
@@ -1630,6 +1653,23 @@
     tbState.layout = lay;
     tbSave();
   }
+  function tbSetScale(key, v) {
+    v = Math.max(0.7, Math.min(1.8, Math.round(v * 100) / 100));
+    tbState.scales[key] = v;
+  }
+  function tbApplySizes() {
+    var S = tbState.scales || {};
+    function px(key, base) { return Math.round(base * (S[key] || 1)) + 'px'; }
+    function set(id, v) { var el = document.getElementById(id); if (el) el.style.fontSize = v; }
+    set('tbLiveTime', px('live', 30));
+    set('tbMktTime', px('mkt', 30));
+    set('tbCurName', px('cur', 24));
+    set('tbCurTime', px('cur', 30));
+    set('tbNextName', px('next', 24));
+    set('tbNextTime', px('next', 30));
+    set('tbContentWord', (tbState.sizes.content || 22) + 'px');
+    set('tbMktWord', (tbState.sizes.mkt || 22) + 'px');
+  }
   function tbApplyLayout() {
     var lay = tbState.layout;
     if (!lay) return;
@@ -1643,26 +1683,88 @@
       var a = document.getElementById('tbR' + n + 'c1'), b = document.getElementById('tbR' + n + 'c2');
       if (a && b) { a.style.flexGrow = c[0]; b.style.flexGrow = c[1]; }
     });
+    tbApplySizes();
   }
+
+  // 双击任意半屏 → 弹出字号小工具条
+  var tbSizer = document.getElementById('tbSizer');
+  var tbSizerKey = null;
+  function tbOpenSizer(key, name, x, y) {
+    tbSizerKey = key;
+    document.getElementById('tbSizerName').textContent = name;
+    tbRefreshSizer();
+    tbSizer.style.left = Math.max(8, Math.min(x, window.innerWidth - 240)) + 'px';
+    tbSizer.style.top = Math.max(8, Math.min(y, window.innerHeight - 70)) + 'px';
+    tbSizer.classList.add('open');
+  }
+  function tbCloseSizer() { tbSizer.classList.remove('open'); tbSizerKey = null; }
+  function tbRefreshSizer() {
+    if (!tbSizerKey) return;
+    document.getElementById('tbSizerVal').textContent = Math.round((tbState.scales[tbSizerKey] || 1) * 100) + '%';
+  }
+  document.getElementById('tbSizerUp').addEventListener('click', function() {
+    if (!tbSizerKey) return;
+    tbSetScale(tbSizerKey, (tbState.scales[tbSizerKey] || 1) + 0.1);
+    tbSave(); tbApplySizes(); tbRefreshSizer();
+  });
+  document.getElementById('tbSizerDown').addEventListener('click', function() {
+    if (!tbSizerKey) return;
+    tbSetScale(tbSizerKey, (tbState.scales[tbSizerKey] || 1) - 0.1);
+    tbSave(); tbApplySizes(); tbRefreshSizer();
+  });
+  document.addEventListener('mousedown', function(e) {
+    if (tbSizer.classList.contains('open') && !tbSizer.contains(e.target) && !e.target.closest('.tb-half')) tbCloseSizer();
+  });
+  [
+    ['live', '已播时间', 'tbR1c1'],
+    ['mkt', '营销倒计时', 'tbR1c2'],
+    ['cur', '当前环节', 'tbR2c1'],
+    ['next', '下一环节', 'tbR2c2']
+  ].forEach(function(item) {
+    var el = document.getElementById(item[2]);
+    if (!el) return;
+    el.addEventListener('dblclick', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      tbPushHistory();
+      tbOpenSizer(item[0], item[1] + '字号', e.clientX, e.clientY);
+    });
+  });
   (function() {
-    function bindDrag(handle, elA, elB, vertical) {
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+    // targets: [{key, kind:'scale'|'px', base, getEl}]，拖动时字号随框大小联动
+    function bindDrag(handle, elA, elB, vertical, targets) {
       handle.addEventListener('mousedown', function(e) {
         e.preventDefault();
         var dragging = true;
         handle.classList.add('dragging');
         document.body.style.cursor = vertical ? 'row-resize' : 'col-resize';
         var startPos = vertical ? e.clientY : e.clientX;
-        var sizeA = vertical ? elA.offsetHeight : elA.offsetWidth;
-        var sizeB = vertical ? elB.offsetHeight : elB.offsetWidth;
-        var total = sizeA + sizeB;
-        var MIN = vertical ? 50 : 90;
+        var sizeA0 = vertical ? elA.offsetHeight : elA.offsetWidth;
+        var sizeB0 = vertical ? elB.offsetHeight : elB.offsetWidth;
+        var total = sizeA0 + sizeB0;
+        var MIN = vertical ? 46 : 80;
+        var snap = targets.map(function(t) {
+          return { t: t, s0: (vertical ? t.getEl().offsetHeight : t.getEl().offsetWidth) || (vertical ? 80 : 150) };
+        });
         function move(ev) {
           if (!dragging) return;
           var d = (vertical ? ev.clientY : ev.clientX) - startPos;
-          var na = Math.max(MIN, Math.min(total - MIN, sizeA + d));
+          var na = clamp(sizeA0 + d, MIN, total - MIN);
           var nb = total - na;
           elA.style.flexGrow = na;
           elB.style.flexGrow = nb;
+          snap.forEach(function(s) {
+            var cur = vertical ? s.t.getEl().offsetHeight : s.t.getEl().offsetWidth;
+            var r = cur / s.s0;
+            r = clamp(r, 0.7, 1.8);
+            if (s.t.kind === 'px') {
+              tbState.sizes[s.t.key] = Math.round(clamp(s.t.base * r, 14, 40));
+            } else {
+              tbSetScale(s.t.key, (tbState.scales[s.t.key] || 1) * (1 + (r - 1) * 0.8));
+            }
+            s.s0 = cur;
+          });
+          tbApplySizes();
         }
         function up() {
           if (!dragging) return;
@@ -1671,20 +1773,51 @@
           document.body.style.cursor = '';
           document.removeEventListener('mousemove', move);
           document.removeEventListener('mouseup', up);
-          tbSaveLayout();
+          tbSaveLayout(); tbSave();
         }
         document.addEventListener('mousemove', move);
         document.addEventListener('mouseup', up);
       });
     }
+    function halfEl(n, c) { return document.getElementById('tbR' + n + 'c' + c); }
+    // 行高手柄：上下两行动字体（话术框用px字号，时间/环节用scale）
     document.querySelectorAll('.tb-rh').forEach(function(h) {
-      var n = parseInt(h.dataset.row, 10);
-      bindDrag(h, document.getElementById('tbRow' + n), document.getElementById('tbRow' + (n + 1)), true);
+      var n = parseInt(h.dataset.row, 1);
+      var rowA = document.getElementById('tbRow' + n), rowB = document.getElementById('tbRow' + (n + 1));
+      var targets = [];
+      function rowTargets(row, cw) {
+        if (row === 'tbRow3') targets.push({ key: 'content', kind: 'px', base: tbState.sizes.content || 22, getEl: function() { return document.getElementById('tbContentWord'); } });
+        if (row === 'tbRow4') targets.push({ key: 'mkt', kind: 'px', base: tbState.sizes.mkt || 22, getEl: function() { return document.getElementById('tbMktWord'); } });
+        if (row === 'tbRow1') {
+          targets.push({ key: 'live', kind: 'scale', getEl: function() { return document.getElementById('tbLiveTime'); } });
+          targets.push({ key: 'mkt', kind: 'scale', getEl: function() { return document.getElementById('tbMktTime'); } });
+        }
+        if (row === 'tbRow2') {
+          targets.push({ key: 'cur', kind: 'scale', getEl: function() { return document.getElementById('tbCurTime'); } });
+          targets.push({ key: 'next', kind: 'scale', getEl: function() { return document.getElementById('tbNextTime'); } });
+        }
+      }
+      rowTargets('tbRow' + n); rowTargets('tbRow' + (n + 1));
+      bindDrag(h, rowA, rowB, true, targets);
     });
+    // 列宽手柄：该排左右两联动
     [1, 2].forEach(function(n) {
       var row = document.getElementById('tbRow' + n);
       var cv = row.querySelector('.tb-cv');
-      if (cv) bindDrag(cv, document.getElementById('tbR' + n + 'c1'), document.getElementById('tbR' + n + 'c2'), false);
+      if (!cv) return;
+      var targets;
+      if (n === 1) {
+        targets = [
+          { key: 'live', kind: 'scale', getEl: function() { return halfEl(1, 1); } },
+          { key: 'mkt', kind: 'scale', getEl: function() { return halfEl(1, 2); } }
+        ];
+      } else {
+        targets = [
+          { key: 'cur', kind: 'scale', getEl: function() { return halfEl(2, 1); } },
+          { key: 'next', kind: 'scale', getEl: function() { return halfEl(2, 2); } }
+        ];
+      }
+      bindDrag(cv, halfEl(n, 1), halfEl(n, 2), false, targets);
     });
   })();
 
@@ -1719,21 +1852,36 @@
     document.addEventListener('mouseup', function() { dragging = false; });
   })();
 
-  // 工具箱宽度拖动
+  // 工具箱宽度拖动（整体字号随宽度联动）
   (function() {
-    var rz = document.getElementById('tbResizer'), dragging = false;
+    var rz = document.getElementById('tbResizer'), dragging = false, w0 = 0, base = null;
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
     rz.addEventListener('mousedown', function(e) {
       if (window.innerWidth <= 768) return;
       dragging = true; rz.classList.add('dragging');
       document.body.style.cursor = 'col-resize'; e.preventDefault();
+      w0 = tbPanel.offsetWidth;
+      base = {
+        live: tbState.scales.live, mkt: tbState.scales.mkt,
+        cur: tbState.scales.cur, next: tbState.scales.next,
+        content: tbState.sizes.content, mktSize: tbState.sizes.mkt
+      };
     });
     document.addEventListener('mousemove', function(e) {
       if (!dragging) return;
       var w = Math.max(280, Math.min(window.innerWidth * 0.6, window.innerWidth - e.clientX));
       tbPanel.style.width = w + 'px';
+      var r = clamp(w / w0, 0.7, 1.8);
+      tbState.scales.live = clamp(base.live * r, 0.7, 1.8);
+      tbState.scales.mkt = clamp(base.mkt * r, 0.7, 1.8);
+      tbState.scales.cur = clamp(base.cur * r, 0.7, 1.8);
+      tbState.scales.next = clamp(base.next * r, 0.7, 1.8);
+      tbState.sizes.content = Math.round(clamp(base.content * r, 14, 40));
+      tbState.sizes.mkt = Math.round(clamp(base.mktSize * r, 14, 40));
+      tbApplySizes();
     });
     document.addEventListener('mouseup', function() {
-      if (dragging) { dragging = false; rz.classList.remove('dragging'); document.body.style.cursor = ''; }
+      if (dragging) { dragging = false; rz.classList.remove('dragging'); document.body.style.cursor = ''; tbSave(); }
     });
   })();
 
@@ -1747,6 +1895,7 @@
   document.addEventListener('keydown', function(e) {
     var tag = (e.target.tagName || '').toLowerCase();
     var inModal = tbModal.classList.contains('open');
+    if (e.key === 'Escape') { tbCloseSizer(); }
     // Ctrl/Cmd + 组合键
     if (e.ctrlKey || e.metaKey) {
       var k = e.key.toLowerCase();
