@@ -518,49 +518,6 @@
     </div>
     <button class="show-toolbar-btn" id="btnShowToolbar">功能栏 ▴</button>
   </div>
-</div>
-
-<!-- 直播回放视频列表 -->
-<div class="video-list-panel" id="videoListPanel">
-  <div class="video-list-inner">
-    <div class="video-list-head">
-      <h3>直播回放</h3>
-      <button class="video-modal-close" onclick="closeVideoList()">✕</button>
-    </div>
-    <div class="video-list-tip">👆 点击下面的回放即可播放</div>
-    <div class="video-list-scroll" id="videoListScroll"></div>
-  </div>
-</div>
-
-<!-- 视频播放器弹窗 -->
-<div class="video-modal" id="videoModal">
-  <div class="video-modal-inner">
-    <div class="video-modal-head">
-      <h3 id="videoTitle">视频播放</h3>
-      <button class="video-modal-close" onclick="closeVideo()">✕</button>
-    </div>
-    <div class="video-player-wrap">
-      <iframe id="videoFrame" src="" allowfullscreen="true" allow="autoplay; encrypted-media"></iframe>
-    </div>
-  </div>
-</div>
-
-<!-- 原唱播放器弹窗 -->
-<div class="video-modal" id="originalModal">
-  <div class="video-modal-inner">
-    <div class="video-modal-head">
-      <h3 id="originalTitle">原唱播放</h3>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <a id="originalBiliLink" href="" target="_blank" style="color:#e94560;font-size:13px;text-decoration:none;">在B站打开 ↗</a>
-        <button class="video-modal-close" onclick="closeOriginal()">✕</button>
-      </div>
-    </div>
-    <div class="video-player-wrap">
-      <iframe id="originalFrame" src="" allowfullscreen="true" allow="autoplay; encrypted-media"></iframe>
-    </div>
-  </div>
-</div>
-
 <!-- ===== 直播工具箱（电脑版 Ctrl+H） ===== -->
 <div class="tb-resizer" id="tbResizer"></div>
 <div class="tb-panel" id="tbPanel">
@@ -602,6 +559,48 @@
       <button class="tb-btn" id="tbBtnNext">下一环节</button>
       <button class="tb-btn" id="tbBtnMktReset">营销重置</button>
       <button class="tb-btn" id="tbBtnWord">话术修改</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- 直播回放视频列表 -->
+<div class="video-list-panel" id="videoListPanel">
+  <div class="video-list-inner">
+    <div class="video-list-head">
+      <h3>直播回放</h3>
+      <button class="video-modal-close" onclick="closeVideoList()">✕</button>
+    </div>
+    <div class="video-list-tip">👆 点击下面的回放即可播放</div>
+    <div class="video-list-scroll" id="videoListScroll"></div>
+  </div>
+</div>
+
+<!-- 视频播放器弹窗 -->
+<div class="video-modal" id="videoModal">
+  <div class="video-modal-inner">
+    <div class="video-modal-head">
+      <h3 id="videoTitle">视频播放</h3>
+      <button class="video-modal-close" onclick="closeVideo()">✕</button>
+    </div>
+    <div class="video-player-wrap">
+      <iframe id="videoFrame" src="" allowfullscreen="true" allow="autoplay; encrypted-media"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- 原唱播放器弹窗 -->
+<div class="video-modal" id="originalModal">
+  <div class="video-modal-inner">
+    <div class="video-modal-head">
+      <h3 id="originalTitle">原唱播放</h3>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <a id="originalBiliLink" href="" target="_blank" style="color:#e94560;font-size:13px;text-decoration:none;">在B站打开 ↗</a>
+        <button class="video-modal-close" onclick="closeOriginal()">✕</button>
+      </div>
+    </div>
+    <div class="video-player-wrap">
+      <iframe id="originalFrame" src="" allowfullscreen="true" allow="autoplay; encrypted-media"></iframe>
     </div>
   </div>
 </div>
