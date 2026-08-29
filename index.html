@@ -350,11 +350,13 @@
   body.tb-on .resizer { display: none; }
 
   .tb-rows { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 6px 4px; }
-  .tb-row { padding: 10px 14px; }
-  .tb-row.line { border-top: 1px solid rgba(255,255,255,0.12); }
+  .tb-row { padding: 10px 14px; flex: 1 1 0; min-height: 58px; overflow: hidden; }
   .tb-split { display: flex; align-items: stretch; }
-  .tb-half { flex: 1; min-width: 0; padding: 0 12px; }
-  .tb-half + .tb-half { border-left: 1px solid rgba(255,255,255,0.15); }
+  .tb-half { flex: 1 1 0; min-width: 0; padding: 0 12px; }
+  .tb-rh { height: 6px; flex-shrink: 0; cursor: row-resize; margin: 0 12px; border-radius: 3px; background: rgba(255,255,255,0.12); }
+  .tb-rh:hover, .tb-rh.dragging { background: #e94560; }
+  .tb-cv { width: 6px; flex-shrink: 0; cursor: col-resize; align-self: stretch; margin: 10px 0; border-radius: 3px; background: rgba(255,255,255,0.12); }
+  .tb-cv:hover, .tb-cv.dragging { background: #e94560; }
 
   .tb-label { font-size: 13px; color: rgba(255,255,255,0.55); margin-bottom: 4px; }
   .tb-label.red { color: #ff7a90; }
@@ -367,7 +369,6 @@
   .tb-word.editable { cursor: pointer; }
   .tb-word.editable:hover { color: #ffd7de; }
 
-  .tb-btns { display: flex; gap: 6px; padding: 10px 12px; border-top: 1px solid rgba(255,255,255,0.12); flex-wrap: wrap; }
   .tb-btn {
     flex: 1; min-width: 70px; padding: 9px 4px; border: 1px solid rgba(255,255,255,0.25);
     border-radius: 8px; background: rgba(255,255,255,0.06); color: #fff;
@@ -522,43 +523,40 @@
 <div class="tb-resizer" id="tbResizer"></div>
 <div class="tb-panel" id="tbPanel">
   <div class="tb-rows">
-    <div class="tb-row tb-split">
-      <div class="tb-half">
+    <div class="tb-row tb-split" id="tbRow1">
+      <div class="tb-half" id="tbR1c1">
         <div class="tb-label">已播</div>
         <div class="tb-time" id="tbLiveTime">00:00:00</div>
       </div>
-      <div class="tb-half">
+      <div class="tb-cv"></div>
+      <div class="tb-half" id="tbR1c2">
         <div class="tb-label red">下次营销（每<span id="tbMktIntervalShow">15</span>分钟）</div>
         <div class="tb-time" id="tbMktTime">还有 15:00</div>
       </div>
     </div>
-    <div class="tb-row line tb-split">
-      <div class="tb-half">
+    <div class="tb-rh" data-row="1"></div>
+    <div class="tb-row tb-split" id="tbRow2">
+      <div class="tb-half" id="tbR2c1">
         <div class="tb-label">当前环节</div>
         <div class="tb-name" id="tbCurName">未设置</div>
         <div class="tb-time" id="tbCurTime">--:--</div>
       </div>
-      <div class="tb-half">
+      <div class="tb-cv"></div>
+      <div class="tb-half" id="tbR2c2">
         <div class="tb-label">下一环节</div>
         <div class="tb-name" id="tbNextName">未设置</div>
         <div class="tb-time" id="tbNextTime">--:--</div>
       </div>
     </div>
-    <div class="tb-row line">
+    <div class="tb-rh" data-row="2"></div>
+    <div class="tb-row" id="tbRow3">
       <div class="tb-label">内容话术提醒</div>
       <div class="tb-word editable" id="tbContentWord" title="点击修改">同学们把扶勾咬三步跟着我做一遍，咬字位置往前挂，声音立刻亮</div>
     </div>
-    <div class="tb-row line">
+    <div class="tb-rh" data-row="3"></div>
+    <div class="tb-row" id="tbRow4">
       <div class="tb-label red">营销话术提醒</div>
       <div class="tb-word editable" id="tbMktWord" title="点击修改">进群唱一段，我帮你挑最适合你的歌，适合唱谁的，这样学才不会偏，唱错了嗓子还受不了</div>
-    </div>
-    <div class="tb-btns">
-      <button class="tb-btn primary" id="tbBtnLive">开播</button>
-      <button class="tb-btn" id="tbBtnChange">环节变更</button>
-      <button class="tb-btn" id="tbBtnCur">当前环节</button>
-      <button class="tb-btn" id="tbBtnNext">下一环节</button>
-      <button class="tb-btn" id="tbBtnMktReset">营销重置</button>
-      <button class="tb-btn" id="tbBtnWord">话术修改</button>
     </div>
   </div>
 </div>
@@ -1347,12 +1345,14 @@
   function tbLiveElapsed() {
     return tbState.liveAccum + (tbState.liveRunning ? Date.now() - tbState.liveStart : 0);
   }
-  function tbMktRemain() {
-    if (!tbState.liveStart && !tbState.liveAccum) return tbState.mktInterval * 60;
-    var elapsedSec = tbLiveElapsed() / 1000;
+  function tbMktRemainSec() {
     var cycle = tbState.mktInterval * 60;
-    var rem = cycle - (elapsedSec - tbState.mktStart / 1000) % cycle;
-    return rem > cycle ? cycle : rem;
+    if (!tbState.liveStart && !tbState.liveAccum) return cycle;
+    var elapsedSec = tbLiveElapsed() / 1000;
+    var startSec = tbState.mktStart / 1000;
+    var rem = cycle - (elapsedSec - startSec) % cycle;
+    if (rem <= 0) rem = cycle;
+    return rem;
   }
   function tbBeep() {
     try {
@@ -1506,11 +1506,12 @@
     document.getElementById('tbMktIntervalShow').textContent = tbState.mktInterval;
     document.getElementById('tbContentWord').textContent = tbContentWord;
     document.getElementById('tbMktWord').textContent = tbMktWord;
-    document.getElementById('tbBtnLive').textContent = tbState.liveRunning ? '暂停' : (tbState.liveAccum || tbState.liveStart ? '继续' : '开播');
+    var liveBtn = document.querySelector('#tbFloat [data-fb="live"]');
+    if (liveBtn) liveBtn.textContent = tbState.liveRunning ? '暂停' : ((tbState.liveAccum || tbState.liveStart) ? '继续' : '开播/暂停');
 
-    var mktRemain = tbMktRemain() / 1000;
+    var mktRemain = tbMktRemainSec();
     var mktEl = document.getElementById('tbMktTime');
-    if (mktRemain <= 0) {
+    if (mktRemain >= tbState.mktInterval * 60 - 1.5 && (tbState.liveStart || tbState.liveAccum)) {
       mktEl.textContent = '该营销了';
       mktEl.classList.add('over');
       if (!tbState.mktNotified && tbState.liveRunning) { tbState.mktNotified = true; tbBeep(); tbSave(); }
@@ -1545,14 +1546,80 @@
   }
 
   // ===== 事件绑定 =====
-  document.getElementById('tbBtnLive').addEventListener('click', function() { tbToggleLive(false); });
-  document.getElementById('tbBtnChange').addEventListener('click', openChange);
-  document.getElementById('tbBtnCur').addEventListener('click', function() { openSetStep('cur'); });
-  document.getElementById('tbBtnNext').addEventListener('click', function() { openSetStep('next'); });
-  document.getElementById('tbBtnMktReset').addEventListener('click', mktReset);
-  document.getElementById('tbBtnWord').addEventListener('click', openWords);
   document.getElementById('tbContentWord').addEventListener('click', openWords);
   document.getElementById('tbMktWord').addEventListener('click', openWords);
+
+  // 右侧每行大小调整（横向手柄调行高、竖手柄调左右占比），比例自动保存
+  function tbSaveLayout() {
+    var lay = { rows: [], cols: {} };
+    for (var i = 1; i <= 4; i++) {
+      var r = document.getElementById('tbRow' + i);
+      lay.rows.push(r ? (parseFloat(r.style.flexGrow) || 1) : 1);
+    }
+    [1, 2].forEach(function(n) {
+      var a = document.getElementById('tbR' + n + 'c1'), b = document.getElementById('tbR' + n + 'c2');
+      if (a && b) lay.cols['r' + n] = [parseFloat(a.style.flexGrow) || 1, parseFloat(b.style.flexGrow) || 1];
+    });
+    tbState.layout = lay;
+    tbSave();
+  }
+  function tbApplyLayout() {
+    var lay = tbState.layout;
+    if (!lay) return;
+    if (lay.rows) for (var i = 0; i < 4; i++) {
+      var r = document.getElementById('tbRow' + (i + 1));
+      if (r && lay.rows[i]) r.style.flexGrow = lay.rows[i];
+    }
+    if (lay.cols) [1, 2].forEach(function(n) {
+      var c = lay.cols['r' + n];
+      if (!c) return;
+      var a = document.getElementById('tbR' + n + 'c1'), b = document.getElementById('tbR' + n + 'c2');
+      if (a && b) { a.style.flexGrow = c[0]; b.style.flexGrow = c[1]; }
+    });
+  }
+  (function() {
+    function bindDrag(handle, elA, elB, vertical) {
+      handle.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        var dragging = true;
+        handle.classList.add('dragging');
+        document.body.style.cursor = vertical ? 'row-resize' : 'col-resize';
+        var startPos = vertical ? e.clientY : e.clientX;
+        var sizeA = vertical ? elA.offsetHeight : elA.offsetWidth;
+        var sizeB = vertical ? elB.offsetHeight : elB.offsetWidth;
+        var total = sizeA + sizeB;
+        var MIN = vertical ? 50 : 90;
+        function move(ev) {
+          if (!dragging) return;
+          var d = (vertical ? ev.clientY : ev.clientX) - startPos;
+          var na = Math.max(MIN, Math.min(total - MIN, sizeA + d));
+          var nb = total - na;
+          elA.style.flexGrow = na;
+          elB.style.flexGrow = nb;
+        }
+        function up() {
+          if (!dragging) return;
+          dragging = false;
+          handle.classList.remove('dragging');
+          document.body.style.cursor = '';
+          document.removeEventListener('mousemove', move);
+          document.removeEventListener('mouseup', up);
+          tbSaveLayout();
+        }
+        document.addEventListener('mousemove', move);
+        document.addEventListener('mouseup', up);
+      });
+    }
+    document.querySelectorAll('.tb-rh').forEach(function(h) {
+      var n = parseInt(h.dataset.row, 10);
+      bindDrag(h, document.getElementById('tbRow' + n), document.getElementById('tbRow' + (n + 1)), true);
+    });
+    [1, 2].forEach(function(n) {
+      var row = document.getElementById('tbRow' + n);
+      var cv = row.querySelector('.tb-cv');
+      if (cv) bindDrag(cv, document.getElementById('tbR' + n + 'c1'), document.getElementById('tbR' + n + 'c2'), false);
+    });
+  })();
 
   document.querySelectorAll('#tbFloat [data-fb]').forEach(function(b) {
     b.addEventListener('click', function() {
@@ -1617,6 +1684,7 @@
   });
 
   tbLoad();
+  tbApplyLayout();
   tbRender();
   setInterval(tbRender, 1000);
 </script>
