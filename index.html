@@ -488,6 +488,29 @@
     .show-toolbar-btn { height: 28px; font-size: 11px; padding: 0 10px; }
     .tb-panel, .tb-resizer, .tb-float, .tb-modal { display: none !important; }
   }
+
+  /* 歌词弹窗 */
+  .lyrics-modal {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.75); z-index: 10000;
+    align-items: center; justify-content: center;
+  }
+  .lyrics-modal.open { display: flex; }
+  .lyrics-modal-inner {
+    background: #1a1a2e; border-radius: 12px; width: 90%; max-width: 500px;
+    max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .lyrics-modal-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .lyrics-modal-head h3 { color: #e94560; font-size: 16px; margin: 0; }
+  .lyrics-modal-body {
+    padding: 18px 22px; overflow-y: auto; flex: 1;
+    color: #ddd; font-size: 15px; line-height: 2; white-space: pre-line;
+    font-family: "Microsoft YaHei", "SimHei", sans-serif;
+  }
 </style>
 </head>
 <body>
@@ -532,6 +555,7 @@
       <button id="btnClear" title="清除全部" style="display:none;">清除</button>
       <div class="divider"></div>
       <button id="btnOriginal" title="听原唱" style="background:rgba(233,69,96,0.6);color:#fff;">♪ 原唱</button>
+      <button id="btnLyrics" title="查看歌词" style="background:rgba(156,39,176,0.6);color:#fff;display:none;">♫ 歌词</button>
       <button id="btnAutoScroll" title="自动下滑" style="background:rgba(76,175,80,0.7);color:#fff;">▼ 下滑</button>
       <select id="scrollSpeed" style="height:28px;border:none;border-radius:4px;background:rgba(255,255,255,0.15);color:#fff;font-size:12px;padding:0 4px;cursor:pointer;">
         <option value="0.5" style="color:#000;">0.5x</option>
@@ -627,6 +651,18 @@
   </div>
 </div>
 
+
+<!-- 歌词弹窗 -->
+<div class="lyrics-modal" id="lyricsModal">
+  <div class="lyrics-modal-inner">
+    <div class="lyrics-modal-head">
+      <h3 id="lyricsTitle">歌词</h3>
+      <button class="video-modal-close" onclick="closeLyrics()">✕</button>
+    </div>
+    <div class="lyrics-modal-body" id="lyricsBody"></div>
+  </div>
+</div>
+
 <!-- 悬浮小工具板 -->
 <div class="tb-float" id="tbFloat">
   <div class="tb-float-head" id="tbFloatHead">工具箱（可拖动）</div>
@@ -658,7 +694,7 @@
 
 <script>
   var songs = [
-    { singer: '张韶涵', date: '2026-09-02', name: '主角', info: '黄婷词 · 范玮琪曲 · 张韶涵演唱', file: 'zhujiao.jpg', original: '' },
+    { singer: '王菲', date: '2026-09-02', name: '主角', info: '赖婷词 · 范炜曲 · 王菲演唱', file: 'zhujiao.jpg', original: 'BV1xpdcBQEXM', lyrics: '过了花期 才算果满枝低\n谁让绚烂是陈迹\n挨了雷电 才算站在云巅\n谁让你当群山的冠冕\n\n吞了流言 才算红了一遍\n谁让滚烫是烈焰\n浸了苦水 才叫命硬如岩\n谁让你皎洁得渗了盐\n\n我站在舞台中央\n影子被钉在墙上\n迎着光才刻下勋章\n寄言燕雀莫相啅\n自有云霄万里高\n天暗了月亮才会亮\n\n中了冷箭 才叫走在前面\n谁让你步履如燕\n断了孤弦 才算响彻云天\n谁让余音才能震屋檐\n\n我站在舞台中央\n影子被钉在墙上\n迎着光才刻下勋章\n寄言燕雀莫相啅\n自有云霄万里高\n天黑了月亮才更亮\n\n月亮爷 丈丈高 骑白马 过石桥\n石桥弯 照山川 万家灯火共团圆\n忆秦娥 步步高 练红绸 踩高跷\n高跷摇 登戏台 唱悲欢 震九霄\n\n我站在山河中央\n影子无冠也无裳\n方知本真无需扮装\n青山见我应如常\n如露如电如月在江\n照见我 是我的模样' },
     { singer: '邓丽君', date: '2026-08-28', name: '甜蜜蜜', info: '庄奴词 · 佚名曲 · 邓丽君演唱', file: 'tianmimi.jpg', original: 'BV1ua4y177vs' },
     { singer: '王菲', date: '2026-08-28', name: '红豆', info: '林夕词 · 陈小霞曲 · 王菲演唱', file: 'hongdou.jpg', original: 'BV1NJ411r7oz' },
     { singer: '邓丽君', date: '2026-08-27', name: '爱的箴言', info: '罗大佑 词曲 · 邓丽君演唱', file: 'aizhenyan.jpg', original: 'BV11HDZYrEeC' },
@@ -843,6 +879,7 @@
 
     document.getElementById('tbSong').textContent = s.name;
     document.getElementById('tbInfo').textContent = s.info;
+    btnLyrics.style.display = s.lyrics ? '' : 'none';
     renderSongList();
     renderAll();
     fitToView();
@@ -1256,6 +1293,27 @@
   }
 
   btnOriginal.addEventListener('click', openOriginal);
+
+  // 歌词弹窗
+  var lyricsModal = document.getElementById('lyricsModal');
+  var lyricsBody = document.getElementById('lyricsBody');
+  var lyricsTitle = document.getElementById('lyricsTitle');
+  var btnLyrics = document.getElementById('btnLyrics');
+
+  function openLyrics() {
+    var song = songs[currentSongIndex];
+    if (!song || !song.lyrics) return;
+    lyricsTitle.textContent = '♫ ' + song.name + ' - ' + song.singer;
+    lyricsBody.textContent = song.lyrics;
+    lyricsModal.classList.add('open');
+  }
+  function closeLyrics() {
+    lyricsModal.classList.remove('open');
+  }
+  lyricsModal.addEventListener('click', function(e) {
+    if (e.target === lyricsModal) closeLyrics();
+  });
+  btnLyrics.addEventListener('click', openLyrics);
 
   // 自动下滑功能
   var isAutoScrolling = false;
@@ -1916,6 +1974,9 @@
   tbLoad();
   tbApplyLayout();
   tbRender();
+
+  // 初始化歌词按钮显示状态
+  if (songs[0] && songs[0].lyrics) { btnLyrics.style.display = ''; }
   setInterval(tbRender, 1000);
 </script>
 </body>
