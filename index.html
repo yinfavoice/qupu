@@ -513,6 +513,7 @@
   }
 
   /* ===== 报警界面 ===== */
+  .tb-panel { position: relative; }
   .alarm-overlay {
     display: none;
     position: absolute;
@@ -568,12 +569,6 @@
   <div class="resizer" id="resizer"></div>
 
   <div class="content-wrapper">
-    <!-- 报警界面 -->
-    <div class="alarm-overlay" id="alarmOverlay">
-      <div class="alarm-icon">🚨</div>
-      <div class="alarm-reason" id="alarmReason"></div>
-      <button class="alarm-close-btn" id="alarmCloseBtn">解除报警</button>
-    </div>
     <div class="content" id="viewArea">
       <button class="menu-btn" id="menuBtn">选歌 ♪</button>
       <button class="mobile-replay-btn" id="mobileReplayBtn">▶ 回放</button>
@@ -648,6 +643,12 @@
       <div class="tb-label red">营销话术提醒</div>
       <div class="tb-word editable" id="tbMktWord" title="点击修改">进群唱一段，我帮你挑最适合你的歌，适合唱谁的，这样学才不会偏，唱错了嗓子还受不了</div>
     </div>
+  </div>
+  <!-- 报警界面（覆盖工具箱区域） -->
+  <div class="alarm-overlay" id="alarmOverlay">
+    <div class="alarm-icon">🚨</div>
+    <div class="alarm-reason" id="alarmReason"></div>
+    <button class="alarm-close-btn" id="alarmCloseBtn">解除报警</button>
   </div>
 </div>
 </div>
@@ -1736,8 +1737,12 @@
     var h = '<h3>⚠️ 选择报警类型</h3>' +
       '<button class="tb-opt" data-alarm="跑题" style="font-size:18px;padding:16px;">🔴 跑题</button>' +
       '<button class="tb-opt" data-alarm="话术违规" style="font-size:18px;padding:16px;">🟡 话术违规</button>' +
-      '<button class="tb-opt" data-alarm="其他" style="font-size:18px;padding:16px;">⚪ 其他</button>' +
-      '<div class="tb-modal-btns"><button class="cancel" onclick="closeTbModal()">取消</button></div>';
+      '<button class="tb-opt" data-custom-alarm="1" style="font-size:18px;padding:16px;">⚪ 其他（自己写）</button>' +
+      '<div id="tbCustomAlarmBox" style="display:none;margin-top:10px;">' +
+      '<input class="tb-min-input" id="tbCustomAlarmText" placeholder="输入报警内容" style="font-size:16px;">' +
+      '</div>' +
+      '<div class="tb-modal-btns"><button class="cancel" onclick="closeTbModal()">取消</button>' +
+      '<button class="ok" id="tbCustomAlarmOk" style="display:none;">确认报警</button></div>';
     openTb(h);
     tbModalBox.querySelectorAll('[data-alarm]').forEach(function(btn) {
       btn.addEventListener('click', function() {
@@ -1745,6 +1750,22 @@
         closeTbModal();
         showAlarm(reason);
       });
+    });
+    var customBtn = tbModalBox.querySelector('[data-custom-alarm]');
+    var customBox = document.getElementById('tbCustomAlarmBox');
+    var customOk = document.getElementById('tbCustomAlarmOk');
+    customBtn.addEventListener('click', function() {
+      tbModalBox.querySelectorAll('.tb-opt').forEach(function(b) { b.classList.remove('sel'); });
+      customBtn.classList.add('sel');
+      customBox.style.display = 'block';
+      customOk.style.display = '';
+      document.getElementById('tbCustomAlarmText').focus();
+    });
+    customOk.addEventListener('click', function() {
+      var txt = document.getElementById('tbCustomAlarmText').value.trim();
+      if (!txt) { alert('请输入报警内容'); return; }
+      closeTbModal();
+      showAlarm(txt);
     });
   }
 
