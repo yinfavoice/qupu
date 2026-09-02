@@ -511,6 +511,42 @@
     color: #ddd; font-size: 15px; line-height: 2; white-space: pre-line;
     font-family: "Microsoft YaHei", "SimHei", sans-serif;
   }
+
+  /* ===== 报警界面 ===== */
+  .alarm-overlay {
+    display: none;
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 200;
+    background: linear-gradient(135deg, #c0392b 0%, #e74c3c 50%, #c0392b 100%);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    animation: alarmPulse 1s ease-in-out infinite;
+  }
+  .alarm-overlay.active { display: flex; }
+  @keyframes alarmPulse {
+    0%, 100% { background: linear-gradient(135deg, #c0392b 0%, #e74c3c 50%, #c0392b 100%); }
+    50% { background: linear-gradient(135deg, #e74c3c 0%, #ff6b6b 50%, #e74c3c 100%); }
+  }
+  .alarm-icon { font-size: 80px; margin-bottom: 20px; }
+  .alarm-reason {
+    font-size: 48px; font-weight: 900; color: #fff;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    letter-spacing: 4px;
+    margin-bottom: 40px;
+  }
+  .alarm-close-btn {
+    padding: 16px 60px; border: 3px solid #fff; border-radius: 50px;
+    background: transparent; color: #fff;
+    font-size: 24px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+    letter-spacing: 2px;
+  }
+  .alarm-close-btn:hover { background: rgba(255,255,255,0.2); }
+  .alarm-close-btn:active { background: rgba(255,255,255,0.4); }
+  .tb-btn.alarm { background: #e74c3c; color: #fff; font-weight: 700; }
+  .tb-btn.reset { background: #f39c12; color: #fff; }
 </style>
 </head>
 <body>
@@ -532,6 +568,12 @@
   <div class="resizer" id="resizer"></div>
 
   <div class="content-wrapper">
+    <!-- 报警界面 -->
+    <div class="alarm-overlay" id="alarmOverlay">
+      <div class="alarm-icon">🚨</div>
+      <div class="alarm-reason" id="alarmReason"></div>
+      <button class="alarm-close-btn" id="alarmCloseBtn">解除报警</button>
+    </div>
     <div class="content" id="viewArea">
       <button class="menu-btn" id="menuBtn">选歌 ♪</button>
       <button class="mobile-replay-btn" id="mobileReplayBtn">▶ 回放</button>
@@ -673,6 +715,8 @@
     <button class="tb-btn" data-fb="next">下一环节</button>
     <button class="tb-btn" data-fb="mkt">营销重置</button>
     <button class="tb-btn" data-fb="word">话术修改</button>
+    <button class="tb-btn reset" data-fb="reset">直播重置</button>
+    <button class="tb-btn alarm" data-fb="alarm">点击报警</button>
   </div>
 </div>
 
@@ -1395,7 +1439,7 @@
   var tbState = {
     liveRunning: false, liveStart: 0, liveAccum: 0,
     cur: null, next: null,
-    mktInterval: 15, mktStart: 0, mktNotified: false,
+    mktInterval: 15, mktStart: 0, mktNotified: false, mktDue: false,
     sizes: { content: 22, mkt: 22 },
     scales: { live: 1, mkt: 1, cur: 1, next: 1 }
   };
@@ -1417,6 +1461,7 @@
     } catch (e) {}
     if (typeof tbState.mktStart !== 'number' || tbState.mktStart > 1e12) tbState.mktStart = 0;
     tbState.liveRunning = false;
+    tbState.mktDue = false;
   }
 
   function tbPushHistory() {
@@ -1645,7 +1690,62 @@
     tbPushHistory();
     tbState.mktStart = tbLiveElapsed();
     tbState.mktNotified = false;
+    tbState.mktDue = false;
     tbSave(); tbRender();
+  }
+
+  function tbLiveReset() {
+    if (!confirm('确定要重置直播计时吗？已播时间、环节进度、营销计时都会归零。')) return;
+    tbPushHistory();
+    tbState.liveStart = Date.now();
+    tbState.liveRunning = true;
+    tbState.liveAccum = 0;
+    tbState.mktStart = 0;
+    tbState.mktNotified = false;
+    tbState.mktDue = false;
+    tbState.cur = null;
+    tbState.next = null;
+    tbSave(); tbRender();
+    tbToast('直播计时已重置');
+  }
+
+  // ===== 报警系统 =====
+  function showAlarm(reason) {
+    var overlay = document.getElementById('alarmOverlay');
+    document.getElementById('alarmReason').textContent = reason;
+    overlay.classList.add('active');
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      for (var i = 0; i < 5; i++) {
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = 1200; o.type = 'square';
+        var t = ctx.currentTime + i * 0.3;
+        g.gain.setValueAtTime(0.001, t);
+        g.gain.exponentialRampToValueAtTime(0.2, t + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+        o.start(t); o.stop(t + 0.28);
+      }
+    } catch (e) {}
+  }
+  function hideAlarm() {
+    document.getElementById('alarmOverlay').classList.remove('active');
+  }
+  document.getElementById('alarmCloseBtn').addEventListener('click', hideAlarm);
+  function openAlarmPicker() {
+    var h = '<h3>⚠️ 选择报警类型</h3>' +
+      '<button class="tb-opt" data-alarm="跑题" style="font-size:18px;padding:16px;">🔴 跑题</button>' +
+      '<button class="tb-opt" data-alarm="话术违规" style="font-size:18px;padding:16px;">🟡 话术违规</button>' +
+      '<button class="tb-opt" data-alarm="其他" style="font-size:18px;padding:16px;">⚪ 其他</button>' +
+      '<div class="tb-modal-btns"><button class="cancel" onclick="closeTbModal()">取消</button></div>';
+    openTb(h);
+    tbModalBox.querySelectorAll('[data-alarm]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var reason = btn.dataset.alarm;
+        closeTbModal();
+        showAlarm(reason);
+      });
+    });
   }
 
   // ===== 渲染 =====
@@ -1660,7 +1760,15 @@
 
     var mktRemain = tbMktRemainSec();
     var mktEl = document.getElementById('tbMktTime');
-    if (mktRemain >= tbState.mktInterval * 60 - 1.5 && (tbState.liveStart || tbState.liveAccum)) {
+    // 倒计时≤3秒进入“该营销了”状态
+    if (mktRemain <= 3 && (tbState.liveStart || tbState.liveAccum)) {
+      tbState.mktDue = true;
+    }
+    // 重置后倒计时回到>60秒，退出“该营销了”状态
+    if (mktRemain > 60) {
+      tbState.mktDue = false;
+    }
+    if (tbState.mktDue) {
       mktEl.textContent = '该营销了';
       mktEl.classList.add('over');
       if (!tbState.mktNotified && tbState.liveRunning) { tbState.mktNotified = true; tbBeep(); tbSave(); }
@@ -1889,6 +1997,8 @@
       else if (act === 'next') openSetStep('next');
       else if (act === 'mkt') mktReset();
       else if (act === 'word') openWords();
+      else if (act === 'reset') tbLiveReset();
+      else if (act === 'alarm') openAlarmPicker();
     });
   });
 
