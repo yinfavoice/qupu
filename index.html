@@ -1557,32 +1557,25 @@
   }
 
   // ===== 弹窗 =====
+  function positionModalNearFloat() {
+    var modal = document.getElementById('tbModal');
+    if (!modal.classList.contains('open')) return;
+    var floatEl = document.getElementById('tbFloat');
+    var fr = floatEl.getBoundingClientRect();
+    var bw = tbModalBox.offsetWidth, bh = tbModalBox.offsetHeight;
+    var left = fr.right + 8, top = fr.top;
+    if (left + bw > window.innerWidth - 10) { left = fr.left - bw - 8; }
+    if (left < 10) { left = Math.max(10, (window.innerWidth - bw) / 2); top = window.innerHeight - bh - 60; }
+    if (top + bh > window.innerHeight - 10) { top = Math.max(10, window.innerHeight - bh - 10); }
+    modal.style.left = left + 'px'; modal.style.top = top + 'px';
+  }
   function openTb(html) {
     tbModalBox.innerHTML = html;
     var modal = document.getElementById('tbModal');
-    var floatEl = document.getElementById('tbFloat');
-    var fr = floatEl.getBoundingClientRect();
-    // 先显示以获取尺寸
     modal.style.display = 'block';
     modal.style.left = '-9999px'; modal.style.top = '-9999px';
-    var bw = tbModalBox.offsetWidth, bh = tbModalBox.offsetHeight;
-    // 优先放在 tb-float 右侧
-    var left = fr.right + 8, top = fr.top;
-    if (left + bw > window.innerWidth - 10) {
-      // 放左侧
-      left = fr.left - bw - 8;
-    }
-    if (left < 10) {
-      // 空间不够就居中底部
-      left = Math.max(10, (window.innerWidth - bw) / 2);
-      top = window.innerHeight - bh - 60;
-    }
-    if (top + bh > window.innerHeight - 10) {
-      top = Math.max(10, window.innerHeight - bh - 10);
-    }
-    modal.style.left = left + 'px';
-    modal.style.top = top + 'px';
     modal.classList.add('open');
+    positionModalNearFloat();
   }
   function closeTbModal() { tbModal.classList.remove('open'); tbModalBox.innerHTML = ''; }
   tbModal.addEventListener('click', function(e) { if (e.target === tbModal) closeTbModal(); });
@@ -2085,27 +2078,40 @@
       var x = Math.max(0, Math.min(window.innerWidth - 100, e.clientX - ox));
       var y = Math.max(0, Math.min(window.innerHeight - 40, e.clientY - oy));
       float.style.left = x + 'px'; float.style.top = y + 'px';
+      if (typeof positionModalNearFloat === 'function') positionModalNearFloat();
     });
     document.addEventListener('mouseup', function() { dragging = false; });
   })();
 
-  // 悬浮窗大小调整
+  // 悬浮窗四角调整大小
   (function() {
-    var handle = document.getElementById('tbFloatResize');
     var floatEl = document.getElementById('tbFloat');
-    var resizing = false, startX = 0, startW = 0;
-    handle.addEventListener('mousedown', function(e) {
-      resizing = true;
-      startX = e.clientX;
-      startW = floatEl.offsetWidth;
-      e.preventDefault(); e.stopPropagation();
+    var resizing = false, corner = '', startX = 0, startY = 0, startW = 0, startH = 0, startL = 0, startT = 0;
+    var minW = 140, maxW = 360, minH = 180, maxH = 600;
+    document.querySelectorAll('.tb-float-resize').forEach(function(h) {
+      h.addEventListener('mousedown', function(e) {
+        resizing = true; corner = h.dataset.corner;
+        startX = e.clientX; startY = e.clientY;
+        startW = floatEl.offsetWidth; startH = floatEl.offsetHeight;
+        startL = floatEl.offsetLeft; startT = floatEl.offsetTop;
+        e.preventDefault(); e.stopPropagation();
+      });
     });
     document.addEventListener('mousemove', function(e) {
       if (!resizing) return;
-      var delta = e.clientX - startX;
-      var newW = Math.max(140, Math.min(320, startW + delta));
-      floatEl.style.width = newW + 'px';
+      var dx = e.clientX - startX, dy = e.clientY - startY;
+      var nw = startW, nh = startH, nl = startL, nt = startT;
+      if (corner === 'br') { nw = startW + dx; nh = startH + dy; }
+      else if (corner === 'bl') { nw = startW - dx; nh = startH + dy; nl = startL + dx; }
+      else if (corner === 'tr') { nw = startW + dx; nh = startH - dy; nt = startT + dy; }
+      else if (corner === 'tl') { nw = startW - dx; nh = startH - dy; nl = startL + dx; nt = startT + dy; }
+      nw = Math.max(minW, Math.min(maxW, nw));
+      nh = Math.max(minH, Math.min(maxH, nh));
+      floatEl.style.width = nw + 'px'; floatEl.style.height = nh + 'px';
+      if (corner === 'bl' || corner === 'tl') floatEl.style.left = nl + 'px';
+      if (corner === 'tr' || corner === 'tl') floatEl.style.top = nt + 'px';
       floatEl.style.right = 'auto';
+      if (typeof positionModalNearFloat === 'function') positionModalNearFloat();
     });
     document.addEventListener('mouseup', function() { resizing = false; });
   })();
