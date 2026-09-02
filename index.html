@@ -383,8 +383,16 @@
   /* 悬浮小工具板 */
   .tb-float {
     display: none; position: fixed; top: 80px; right: 20px; z-index: 300;
-    width: 190px; background: rgba(20,20,38,0.92); border: 1px solid rgba(233,69,96,0.5);
+    width: 190px; min-width: 140px; max-width: 320px;
+    background: rgba(20,20,38,0.92); border: 1px solid rgba(233,69,96,0.5);
     border-radius: 12px; box-shadow: 0 6px 24px rgba(0,0,0,0.5); overflow: hidden;
+    resize: horizontal;
+  }
+  .tb-float-resize-handle {
+    position: absolute; bottom: 0; right: 0; width: 16px; height: 16px;
+    cursor: nwse-resize; z-index: 10;
+    background: linear-gradient(135deg, transparent 50%, rgba(233,69,96,0.4) 50%);
+    border-radius: 0 0 12px 0;
   }
   body.tb-on .tb-float { display: block; }
   .tb-float-head {
@@ -395,15 +403,17 @@
   .tb-float-body .tb-btn { min-width: 0; padding: 8px 4px; font-size: 12px; }
 
   /* 工具箱弹窗 */
+  
   .tb-modal {
-    display: none; position: fixed; inset: 0; z-index: 400;
-    background: rgba(0,0,0,0.6); align-items: center; justify-content: center;
+    display: none; position: fixed; z-index: 350;
+    /* 位置由 JS 根据 tb-float 动态计算 */
   }
-  .tb-modal.open { display: flex; }
+  .tb-modal.open { display: block; }
   .tb-modal-box {
-    width: 440px; max-width: 92vw; max-height: 86vh; overflow-y: auto;
-    background: #16213e; border: 1px solid rgba(233,69,96,0.6);
-    border-radius: 14px; padding: 20px; color: #fff;
+    width: 280px; max-width: 80vw; max-height: 70vh; overflow-y: auto;
+    background: rgba(20,20,38,0.96); border: 1px solid rgba(233,69,96,0.6);
+    border-radius: 10px; padding: 14px; color: #fff;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
   }
   .tb-modal-box h3 { font-size: 18px; color: #e94560; margin-bottom: 14px; }
   .tb-modal-box h4 { font-size: 14px; color: rgba(255,255,255,0.75); margin: 14px 0 8px; }
@@ -486,7 +496,8 @@
     .toolbar .divider { height: 20px; margin: 0 2px; }
     .tb-toolbar-toggle { width: 26px; height: 26px; right: 8px; }
     .show-toolbar-btn { height: 28px; font-size: 11px; padding: 0 10px; }
-    .tb-panel, .tb-resizer, .tb-float, .tb-modal { display: none !important; }
+    .tb-panel, .tb-resizer, .tb-float, 
+  .tb-modal { display: none !important; }
   }
 
   /* 歌词弹窗 */
@@ -719,6 +730,7 @@
     <button class="tb-btn reset" data-fb="reset">直播重置</button>
     <button class="tb-btn alarm" data-fb="alarm">点击报警</button>
   </div>
+  <div class="tb-float-resize-handle" id="tbFloatResize"></div>
 </div>
 
 <!-- 工具箱通用弹窗 -->
@@ -1536,7 +1548,33 @@
   }
 
   // ===== 弹窗 =====
-  function openTb(html) { tbModalBox.innerHTML = html; tbModal.classList.add('open'); }
+  function openTb(html) {
+    tbModalBox.innerHTML = html;
+    var modal = document.getElementById('tbModal');
+    var floatEl = document.getElementById('tbFloat');
+    var fr = floatEl.getBoundingClientRect();
+    // 先显示以获取尺寸
+    modal.style.display = 'block';
+    modal.style.left = '-9999px'; modal.style.top = '-9999px';
+    var bw = tbModalBox.offsetWidth, bh = tbModalBox.offsetHeight;
+    // 优先放在 tb-float 右侧
+    var left = fr.right + 8, top = fr.top;
+    if (left + bw > window.innerWidth - 10) {
+      // 放左侧
+      left = fr.left - bw - 8;
+    }
+    if (left < 10) {
+      // 空间不够就居中底部
+      left = Math.max(10, (window.innerWidth - bw) / 2);
+      top = window.innerHeight - bh - 60;
+    }
+    if (top + bh > window.innerHeight - 10) {
+      top = Math.max(10, window.innerHeight - bh - 10);
+    }
+    modal.style.left = left + 'px';
+    modal.style.top = top + 'px';
+    modal.classList.add('open');
+  }
   function closeTbModal() { tbModal.classList.remove('open'); tbModalBox.innerHTML = ''; }
   tbModal.addEventListener('click', function(e) { if (e.target === tbModal) closeTbModal(); });
 
@@ -2040,6 +2078,27 @@
       float.style.left = x + 'px'; float.style.top = y + 'px';
     });
     document.addEventListener('mouseup', function() { dragging = false; });
+  })();
+
+  // 悬浮窗大小调整
+  (function() {
+    var handle = document.getElementById('tbFloatResize');
+    var floatEl = document.getElementById('tbFloat');
+    var resizing = false, startX = 0, startW = 0;
+    handle.addEventListener('mousedown', function(e) {
+      resizing = true;
+      startX = e.clientX;
+      startW = floatEl.offsetWidth;
+      e.preventDefault(); e.stopPropagation();
+    });
+    document.addEventListener('mousemove', function(e) {
+      if (!resizing) return;
+      var delta = e.clientX - startX;
+      var newW = Math.max(140, Math.min(320, startW + delta));
+      floatEl.style.width = newW + 'px';
+      floatEl.style.right = 'auto';
+    });
+    document.addEventListener('mouseup', function() { resizing = false; });
   })();
 
   // 工具箱宽度拖动（整体字号随宽度联动）
