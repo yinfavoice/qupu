@@ -565,6 +565,55 @@
   .alarm-close-btn:active { background: rgba(255,255,255,0.4); }
   .tb-btn.alarm { background: #e74c3c; color: #fff; font-weight: 700; }
   .tb-btn.reset { background: #f39c12; color: #fff; }
+
+  /* 月份分组折叠 */
+  .month-group-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; margin: 6px 0 2px; border-radius: 8px;
+    background: rgba(255,255,255,0.08); cursor: pointer;
+    user-select: none; transition: background 0.15s;
+  }
+  .month-group-header:hover { background: rgba(255,255,255,0.12); }
+  .month-group-header .mg-label {
+    color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .month-group-header .mg-arrow {
+    display: inline-block; width: 0; height: 0;
+    border-left: 5px solid rgba(255,255,255,0.5);
+    border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+    transition: transform 0.2s;
+  }
+  .month-group-header.collapsed .mg-arrow { transform: rotate(-90deg); }
+  .month-group-header .mg-count {
+    font-size: 12px; color: rgba(255,255,255,0.35);
+  }
+  .month-group-items { overflow: hidden; transition: max-height 0.25s ease; }
+  .month-group-items.collapsed { max-height: 0 !important; }
+
+
+  /* 工具箱底部模式 */
+  body.tb-on.tb-bottom .container { flex-direction: column; }
+  body.tb-on.tb-bottom .tb-panel {
+    width: 100% !important; max-width: 100% !important; height: auto; min-height: 160px; max-height: 50vh;
+    flex-direction: column;
+  }
+  body.tb-on.tb-bottom .content-wrapper { width: 100% !important; }
+  body.tb-on.tb-bottom .tb-resizer {
+    width: 100% !important; height: 6px; cursor: row-resize;
+  }
+  body.tb-on.tb-bottom .tb-resizer::after {
+    width: 44px; height: 18px; border-radius: 9px;
+  }
+  body.tb-on.tb-bottom #tbPanel .tb-pos-btn { position: absolute; top: 4px; left: 8px; right: auto; }
+  .tb-pos-btn {
+    position: absolute; top: 4px; right: 4px; z-index: 5;
+    width: 28px; height: 28px; border: none; border-radius: 14px;
+    background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.7);
+    font-size: 14px; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; transition: background 0.2s;
+  }
+  .tb-pos-btn:hover { background: rgba(255,255,255,0.25); }
 </style>
 </head>
 <body>
@@ -624,6 +673,7 @@
 <!-- ===== 直播工具箱（电脑版 Ctrl+H） ===== -->
 <div class="tb-resizer" id="tbResizer"></div>
 <div class="tb-panel" id="tbPanel">
+  <button class="tb-pos-btn" id="tbPosBtn" title="切换位置（右/下）">⇅</button>
   <div class="tb-rows">
     <div class="tb-row tb-split" id="tbRow1">
       <div class="tb-half" id="tbR1c1">
@@ -769,6 +819,7 @@
 
   // 直播回放视频列表（后续添加新视频只需在这里追加）
   var replays = [
+    { name: '9月2日直播回放', date: '2026-09-02', duration: '1小时47分', bv: 'BV1jAtd6dE43' },
     { name: '8月28日直播回放', date: '2026-08-28', duration: '1小时55分', bv: 'BV1qu4k6HE9z' },
     { name: '8月27日直播回放', date: '2026-08-27', duration: '2小时6分', bv: 'BV1P8tc6SEBb' },
     { name: '8月26日直播回放', date: '2026-08-26', duration: '1小时56分', bv: 'BV1Y9tc6AEFu' },
@@ -1290,13 +1341,45 @@
 
   function renderVideoList() {
     videoListScroll.innerHTML = '';
-    replays.forEach(function(v, idx) {
-      var item = document.createElement('div');
-      item.className = 'video-item';
-      item.innerHTML = '<div class="vi-name">▶ ' + v.name + '</div>' +
-        '<div class="vi-meta">' + v.date + ' · ' + v.duration + '</div>';
-      item.onclick = function() { openVideo(v); };
-      videoListScroll.appendChild(item);
+    var months = {}, monthOrder = [];
+    replays.forEach(function(v) {
+      var m = v.date.substring(0, 7);
+      var label = parseInt(v.date.substring(5,7)) + '月';
+      if (!months[m]) { months[m] = { label: label, items: [] }; monthOrder.push(m); }
+      months[m].items.push(v);
+    });
+    monthOrder.sort().reverse();
+    monthOrder.forEach(function(m) {
+      var group = months[m];
+      var header = document.createElement('div');
+      header.className = 'month-group-header';
+      header.innerHTML = '<span class="mg-label"><span class="mg-arrow"></span>' + group.label + '直播回放</span>' +
+        '<span class="mg-count">' + group.items.length + '场</span>';
+      var itemsWrap = document.createElement('div');
+      itemsWrap.className = 'month-group-items';
+      group.items.forEach(function(v) {
+        var item = document.createElement('div');
+        item.className = 'video-item';
+        item.innerHTML = '<div class="vi-name">▶ ' + v.name + '</div>' +
+          '<div class="vi-meta">' + v.date + ' · ' + v.duration + '</div>';
+        item.onclick = function() { openVideo(v); };
+        itemsWrap.appendChild(item);
+      });
+      if (m === monthOrder[0]) {
+        itemsWrap.style.maxHeight = 'none';
+      } else {
+        header.classList.add('collapsed');
+        itemsWrap.classList.add('collapsed');
+      }
+      header.onclick = function() {
+        header.classList.toggle('collapsed');
+        itemsWrap.classList.toggle('collapsed');
+        if (!itemsWrap.classList.contains('collapsed')) {
+          itemsWrap.style.maxHeight = itemsWrap.scrollHeight + 'px';
+        }
+      };
+      videoListScroll.appendChild(header);
+      videoListScroll.appendChild(itemsWrap);
     });
   }
 
@@ -2116,38 +2199,48 @@
     document.addEventListener('mouseup', function() { resizing = false; });
   })();
 
-  // 工具箱宽度拖动（整体字号随宽度联动）
+  // 工具箱尺寸拖动（仅调整面板大小，不影响字号）
   (function() {
-    var rz = document.getElementById('tbResizer'), dragging = false, w0 = 0, base = null;
-    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+    var rz = document.getElementById('tbResizer'), dragging = false, initSize = 0;
     rz.addEventListener('mousedown', function(e) {
       if (window.innerWidth <= 768) return;
       dragging = true; rz.classList.add('dragging');
-      document.body.style.cursor = 'col-resize'; e.preventDefault();
-      w0 = tbPanel.offsetWidth;
-      base = {
-        live: tbState.scales.live, mkt: tbState.scales.mkt,
-        cur: tbState.scales.cur, next: tbState.scales.next,
-        content: tbState.sizes.content, mktSize: tbState.sizes.mkt
-      };
+      var isBottom = document.body.classList.contains('tb-bottom');
+      document.body.style.cursor = isBottom ? 'row-resize' : 'col-resize';
+      e.preventDefault();
+      initSize = isBottom ? tbPanel.offsetHeight : tbPanel.offsetWidth;
     });
     document.addEventListener('mousemove', function(e) {
       if (!dragging) return;
-      var w = Math.max(280, Math.min(window.innerWidth * 0.6, window.innerWidth - e.clientX));
-      tbPanel.style.width = w + 'px';
-      var r = clamp(w / w0, 0.7, 1.8);
-      tbState.scales.live = clamp(base.live * r, 0.7, 1.8);
-      tbState.scales.mkt = clamp(base.mkt * r, 0.7, 1.8);
-      tbState.scales.cur = clamp(base.cur * r, 0.7, 1.8);
-      tbState.scales.next = clamp(base.next * r, 0.7, 1.8);
-      tbState.sizes.content = Math.round(clamp(base.content * r, 14, 40));
-      tbState.sizes.mkt = Math.round(clamp(base.mktSize * r, 14, 40));
-      tbApplySizes();
+      var isBottom = document.body.classList.contains('tb-bottom');
+      if (isBottom) {
+        var h = Math.max(160, Math.min(window.innerHeight * 0.6, e.clientY));
+        tbPanel.style.height = h + 'px';
+      } else {
+        var w = Math.max(280, Math.min(window.innerWidth * 0.6, window.innerWidth - e.clientX));
+        tbPanel.style.width = w + 'px';
+      }
     });
     document.addEventListener('mouseup', function() {
       if (dragging) { dragging = false; rz.classList.remove('dragging'); document.body.style.cursor = ''; tbSave(); }
     });
   })();
+
+
+  // 工具箱位置切换（右/下）
+  var tbPosBtn = document.getElementById('tbPosBtn');
+  function tbLoadPos() {
+    if (localStorage.getItem('tb-pos') === 'bottom') {
+      document.body.classList.add('tb-bottom');
+    }
+  }
+  function tbTogglePos() {
+    document.body.classList.toggle('tb-bottom');
+    localStorage.setItem('tb-pos', document.body.classList.contains('tb-bottom') ? 'bottom' : 'right');
+    setTimeout(function() { window.dispatchEvent(new Event('resize')); }, 60);
+  }
+  tbPosBtn.addEventListener('click', tbTogglePos);
+  tbLoadPos();
 
   // Ctrl+H 开关
   function tbToggle() {
