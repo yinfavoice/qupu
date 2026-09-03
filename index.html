@@ -710,6 +710,16 @@
       <div class="tb-label red">营销话术提醒</div>
       <div class="tb-word editable" id="tbMktWord" title="点击修改">进群唱一段，我帮你挑最适合你的歌，适合唱谁的，这样学才不会偏，唱错了嗓子还受不了</div>
     </div>
+    <div class="tb-rh" data-row="4"></div>
+    <div class="tb-row" id="tbRowFont" style="min-height:42px;">
+      <div class="tb-label">字号（一键调整）</div>
+      <div style="display:flex;gap:6px;margin-top:4px;">
+        <button class="tb-btn tb-font-preset" data-level="0" style="min-width:0;padding:6px 2px;font-size:12px;">默认</button>
+        <button class="tb-btn tb-font-preset" data-level="1" style="min-width:0;padding:6px 2px;font-size:12px;">大</button>
+        <button class="tb-btn tb-font-preset" data-level="2" style="min-width:0;padding:6px 2px;font-size:12px;">超大</button>
+        <button class="tb-btn tb-font-preset" data-level="3" style="min-width:0;padding:6px 2px;font-size:12px;">特大</button>
+      </div>
+    </div>
   </div>
   <!-- 报警界面（覆盖工具箱区域） -->
   <div class="alarm-overlay" id="alarmOverlay">
@@ -1981,6 +1991,47 @@
     set('tbContentWord', (tbState.sizes.content || 22) + 'px');
     set('tbMktWord', (tbState.sizes.mkt || 22) + 'px');
   }
+
+  // 字号一键预设
+  var tbFontPresets = [
+    { name:'默认', scales:{live:1,mkt:1,cur:1,next:1}, sizes:{content:22,mkt:22} },
+    { name:'大',   scales:{live:1.25,mkt:1.25,cur:1.25,next:1.25}, sizes:{content:28,mkt:28} },
+    { name:'超大', scales:{live:1.5,mkt:1.5,cur:1.5,next:1.5}, sizes:{content:34,mkt:34} },
+    { name:'特大', scales:{live:1.8,mkt:1.8,cur:1.8,next:1.8}, sizes:{content:40,mkt:40} }
+  ];
+  document.querySelectorAll('.tb-font-preset').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var lv = parseInt(btn.getAttribute('data-level'));
+      var p = tbFontPresets[lv];
+      if (!p) return;
+      tbState.scales.live = p.scales.live;
+      tbState.scales.mkt = p.scales.mkt;
+      tbState.scales.cur = p.scales.cur;
+      tbState.scales.next = p.scales.next;
+      tbState.sizes.content = p.sizes.content;
+      tbState.sizes.mkt = p.sizes.mkt;
+      tbApplySizes();
+      tbSave();
+      // 高亮当前选中
+      document.querySelectorAll('.tb-font-preset').forEach(function(b) {
+        b.style.background = ''; b.style.borderColor = '';
+      });
+      btn.style.background = '#e94560';
+      btn.style.borderColor = '#e94560';
+    });
+  });
+  // 初始化高亮当前预设
+  function tbHighlightFontPreset() {
+    var cs = tbState.scales.live || 1;
+    var idx = 0;
+    if (cs >= 1.7) idx = 3;
+    else if (cs >= 1.4) idx = 2;
+    else if (cs >= 1.15) idx = 1;
+    document.querySelectorAll('.tb-font-preset').forEach(function(b, i) {
+      if (i === idx) { b.style.background = '#e94560'; b.style.borderColor = '#e94560'; }
+      else { b.style.background = ''; b.style.borderColor = ''; }
+    });
+  }
   function tbApplyLayout() {
     var lay = tbState.layout;
     if (!lay) return;
@@ -2199,9 +2250,10 @@
     document.addEventListener('mouseup', function() { resizing = false; });
   })();
 
-  // 工具箱尺寸拖动（仅调整面板大小，不影响字号）
+  // 工具箱尺寸拖动（面板大小 + 字号联动缩放）
   (function() {
-    var rz = document.getElementById('tbResizer'), dragging = false, initSize = 0;
+    var rz = document.getElementById('tbResizer'), dragging = false, initSize = 0, baseScales = null, baseSizes = null;
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
     rz.addEventListener('mousedown', function(e) {
       if (window.innerWidth <= 768) return;
       dragging = true; rz.classList.add('dragging');
@@ -2209,17 +2261,31 @@
       document.body.style.cursor = isBottom ? 'row-resize' : 'col-resize';
       e.preventDefault();
       initSize = isBottom ? tbPanel.offsetHeight : tbPanel.offsetWidth;
+      baseScales = { live: tbState.scales.live, mkt: tbState.scales.mkt, cur: tbState.scales.cur, next: tbState.scales.next };
+      baseSizes = { content: tbState.sizes.content, mkt: tbState.sizes.mkt };
     });
     document.addEventListener('mousemove', function(e) {
       if (!dragging) return;
       var isBottom = document.body.classList.contains('tb-bottom');
+      var curSize, r;
       if (isBottom) {
         var h = Math.max(160, Math.min(window.innerHeight * 0.6, e.clientY));
         tbPanel.style.height = h + 'px';
+        curSize = h;
       } else {
         var w = Math.max(280, Math.min(window.innerWidth * 0.6, window.innerWidth - e.clientX));
         tbPanel.style.width = w + 'px';
+        curSize = w;
       }
+      r = clamp(curSize / initSize, 0.5, 2.5);
+      tbState.scales.live = clamp(baseScales.live * r, 0.5, 2.5);
+      tbState.scales.mkt = clamp(baseScales.mkt * r, 0.5, 2.5);
+      tbState.scales.cur = clamp(baseScales.cur * r, 0.5, 2.5);
+      tbState.scales.next = clamp(baseScales.next * r, 0.5, 2.5);
+      tbState.sizes.content = Math.round(clamp(baseSizes.content * r, 12, 48));
+      tbState.sizes.mkt = Math.round(clamp(baseSizes.mkt * r, 12, 48));
+      tbApplySizes();
+      tbHighlightFontPreset();
     });
     document.addEventListener('mouseup', function() {
       if (dragging) { dragging = false; rz.classList.remove('dragging'); document.body.style.cursor = ''; tbSave(); }
@@ -2270,6 +2336,7 @@
   });
 
   tbLoad();
+    tbHighlightFontPreset();
   tbApplyLayout();
   tbRender();
 
