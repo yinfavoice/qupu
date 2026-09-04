@@ -1247,6 +1247,13 @@
   }
 
   viewArea.addEventListener('wheel', function(e) {
+    var isMultiPage = (songPageMap[currentSongIndex] || []).length > 1;
+    if (isMultiPage) {
+      // 多页模式：滚轮控制滚动
+      scoreContainer.scrollTop += e.deltaY;
+      e.preventDefault();
+      return;
+    }
     e.preventDefault();
     if (currentMode !== 'pan') return;
     var delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
@@ -1268,7 +1275,12 @@
       isDragging = true;
       viewArea.classList.add('dragging');
       dragStartX = e.clientX; dragStartY = e.clientY;
-      dragPanStartX = panX; dragPanStartY = panY;
+      var isMultiPage = (songPageMap[currentSongIndex] || []).length > 1;
+      if (isMultiPage) {
+        _dragScrollStart = scoreContainer.scrollTop;
+      } else {
+        dragPanStartX = panX; dragPanStartY = panY;
+      }
     }
   });
 
