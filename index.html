@@ -1846,19 +1846,6 @@
     var overlay = document.getElementById('alarmOverlay');
     document.getElementById('alarmReason').textContent = reason;
     overlay.classList.add('active');
-    try {
-      var ctx = new (window.AudioContext || window.webkitAudioContext)();
-      for (var i = 0; i < 5; i++) {
-        var o = ctx.createOscillator(), g = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
-        o.frequency.value = 1200; o.type = 'square';
-        var t = ctx.currentTime + i * 0.3;
-        g.gain.setValueAtTime(0.001, t);
-        g.gain.exponentialRampToValueAtTime(0.2, t + 0.03);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-        o.start(t); o.stop(t + 0.28);
-      }
-    } catch (e) {}
   }
   function hideAlarm_local() {
     document.getElementById('alarmOverlay').classList.remove('active');
