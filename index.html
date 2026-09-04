@@ -1034,21 +1034,19 @@
         p.style.margin = '';
       }
     });
-    // 多页时让容器可滚动
+    // 多页时让容器可滚动（保持absolute定位，只改display和overflow）
     if (activePages.length > 1) {
       scoreContainer.style.display = 'flex';
       scoreContainer.style.flexDirection = 'column';
       scoreContainer.style.alignItems = 'center';
-      scoreContainer.style.position = 'relative';
-      scoreContainer.style.overflow = 'auto';
-      scoreContainer.style.height = '100%';
+      scoreContainer.style.overflowY = 'auto';
+      scoreContainer.style.justifyContent = 'flex-start';
     } else {
       scoreContainer.style.display = '';
       scoreContainer.style.flexDirection = '';
       scoreContainer.style.alignItems = '';
-      scoreContainer.style.position = '';
-      scoreContainer.style.overflow = '';
-      scoreContainer.style.height = '';
+      scoreContainer.style.overflowY = '';
+      scoreContainer.style.justifyContent = '';
     }
 
     document.getElementById('tbSong').textContent = s.name;
@@ -1086,6 +1084,7 @@
         if (pos !== -1) {
           p.classList.add('active');
           p.style.top = 'auto';
+          p.style.left = 'auto';
           p.style.position = 'relative';
           p.style.transform = 'none';
           p.style.margin = '0 auto 4px auto';
@@ -1094,9 +1093,8 @@
       scoreContainer.style.display = 'flex';
       scoreContainer.style.flexDirection = 'column';
       scoreContainer.style.alignItems = 'center';
-      scoreContainer.style.position = 'relative';
-      scoreContainer.style.overflow = 'auto';
-      scoreContainer.style.height = '100%';
+      scoreContainer.style.overflowY = 'auto';
+      scoreContainer.style.justifyContent = 'flex-start';
     }
   })();
 
@@ -1123,7 +1121,20 @@
   function updateTransform(animate) {
     var sw = scoreWrapper();
     sw.style.transition = animate ? 'transform 0.15s ease-out' : 'none';
-    sw.style.transform = 'translate(calc(-50% + ' + panX + 'px), calc(-50% + ' + panY + 'px)) scale(' + currentScale + ')';
+    var isMultiPage = (songPageMap[currentSongIndex] || []).length > 1;
+    if (isMultiPage) {
+      var activePages = songPageMap[currentSongIndex] || [];
+      activePages.forEach(function(pageIdx) {
+        var p = scorePages[pageIdx];
+        if (p) {
+          p.style.transition = animate ? 'transform 0.15s ease-out' : 'none';
+          p.style.transform = 'scale(' + currentScale + ')';
+          p.style.transformOrigin = 'top center';
+        }
+      });
+    } else {
+      sw.style.transform = 'translate(calc(-50% + ' + panX + 'px), calc(-50% + ' + panY + 'px)) scale(' + currentScale + ')';
+    }
     zoomLabel.textContent = Math.round(currentScale * 100) + '%';
   }
 
