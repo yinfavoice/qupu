@@ -2309,6 +2309,60 @@
   tbPosBtn.addEventListener('click', tbTogglePos);
   tbLoadPos();
 
+
+  // 跨窗口同步（BroadcastChannel）
+  (function() {
+    var bc = null;
+    try { bc = new BroadcastChannel('he-qupu-sync'); } catch(e) {}
+    if (!bc) return;
+
+    // 发送状态到其它窗口
+    function syncState(action) {
+      try {
+        bc.postMessage({ type: action, state: JSON.parse(JSON.stringify(tbState)), pos: document.body.classList.contains('tb-bottom') ? 'bottom' : 'right', visible: document.body.classList.contains('tb-on') });
+      } catch(e) {}
+    }
+
+    // 监听其它窗口的状态变化
+    bc.onmessage = function(ev) {
+      var msg = ev.data;
+      if (!msg || !msg.type) return;
+      if (msg.state) {
+        // 同步所有状态
+        tbState.scales = msg.state.scales || tbState.scales;
+        tbState.sizes = msg.state.sizes || tbState.sizes;
+        tbApplySizes();
+        tbHighlightFontPreset();
+      }
+      if (msg.type === 'position') {
+        if (msg.pos === 'bottom') document.body.classList.add('tb-bottom');
+        else document.body.classList.remove('tb-bottom');
+        localStorage.setItem('tb-pos', msg.pos);
+        setTimeout(function() { window.dispatchEvent(new Event('resize')); }, 60);
+      }
+      if (msg.type === 'visibility') {
+        if (msg.visible) { if (!document.body.classList.contains('tb-on')) document.body.classList.add('tb-on'); }
+        else { document.body.classList.remove('tb-on'); }
+      }
+    };
+
+    // 在字体预设点击时同步
+    var origFontClick = false;
+    document.querySelectorAll('.tb-font-preset').forEach(function(btn) {
+      btn.addEventListener('click', function() { setTimeout(function() { syncState('font'); }, 50); });
+    });
+
+    // 位置切换同步
+    tbPosBtn.addEventListener('click', function() { setTimeout(function() { syncState('position'); }, 50); });
+
+    // Ctrl+H 显示/隐藏同步
+    document.addEventListener('keydown', function(e) {
+      if (e.ctrlKey && e.key === 'h') { setTimeout(function() { syncState('visibility'); }, 50); }
+    });
+
+    // 拖拽结束时同步
+    document.addEventListener('mouseup', function() { setTimeout(function() { syncState('resize'); }, 100); });
+  })();
   // Ctrl+H 开关
   function tbToggle() {
     if (window.innerWidth <= 768) return;
