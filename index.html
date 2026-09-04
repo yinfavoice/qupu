@@ -1079,6 +1079,18 @@
   window.addEventListener('orientationchange', function() {
     setTimeout(fitToView, 300);
   });
+  document.addEventListener('fullscreenchange', function() {
+    clearTimeout(window._fitTimer);
+    window._fitTimer = setTimeout(fitToView, 200);
+  });
+  document.addEventListener('webkitfullscreenchange', function() {
+    clearTimeout(window._fitTimer);
+    window._fitTimer = setTimeout(fitToView, 200);
+  });
+  document.addEventListener('mozfullscreenchange', function() {
+    clearTimeout(window._fitTimer);
+    window._fitTimer = setTimeout(fitToView, 200);
+  });
 
   renderSongList();
 
@@ -1123,7 +1135,7 @@
     container.style.setProperty('--sb-w', w + 'px');
   });
   document.addEventListener('mouseup', function() {
-    if (isResizing) { isResizing = false; resizer.classList.remove('dragging'); document.body.style.cursor = ''; }
+    if (isResizing) { isResizing = false; resizer.classList.remove('dragging'); document.body.style.cursor = ''; clearTimeout(window._fitTimer); window._fitTimer = setTimeout(fitToView, 150); }
   });
 
   function updateTransform(animate) {
