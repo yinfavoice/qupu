@@ -2310,58 +2310,89 @@
   tbLoadPos();
 
 
-  // 跨窗口同步（BroadcastChannel）
+  // 跨窗口同步（BroadcastChannel）— 全量状态同步
   (function() {
     var bc = null;
     try { bc = new BroadcastChannel('he-qupu-sync'); } catch(e) {}
     if (!bc) return;
+    var _syncing = false;
+    var _syncFlash = null;
 
-    // 发送状态到其它窗口
-    function syncState(action) {
+    function flashSync() {
+      if (!_syncFlash) {
+        _syncFlash = document.createElement('div');
+        _syncFlash.textContent = '\u21C4 \u540c\u6b65';
+        _syncFlash.style.cssText = 'position:fixed;top:8px;right:8px;background:#4CAF50;color:#fff;padding:4px 12px;border-radius:12px;font-size:13px;z-index:99999;opacity:0;transition:opacity .2s;pointer-events:none;';
+        document.body.appendChild(_syncFlash);
+      }
+      _syncFlash.style.opacity = '1';
+      clearTimeout(_syncFlash._t);
+      _syncFlash._t = setTimeout(function() { _syncFlash.style.opacity = '0'; }, 600);
+    }
+
+    function broadcast(type) {
+      if (_syncing) return;
       try {
-        bc.postMessage({ type: action, state: JSON.parse(JSON.stringify(tbState)), pos: document.body.classList.contains('tb-bottom') ? 'bottom' : 'right', visible: document.body.classList.contains('tb-on') });
+        bc.postMessage({
+          type: type,
+          state: JSON.parse(JSON.stringify(tbState)),
+          words: { content: tbContentWord, mkt: tbMktWord },
+          pos: document.body.classList.contains('tb-bottom') ? 'bottom' : 'right',
+          visible: document.body.classList.contains('tb-on')
+        });
       } catch(e) {}
     }
 
-    // 监听其它窗口的状态变化
     bc.onmessage = function(ev) {
       var msg = ev.data;
-      if (!msg || !msg.type) return;
-      if (msg.state) {
-        // 同步所有状态
-        tbState.scales = msg.state.scales || tbState.scales;
-        tbState.sizes = msg.state.sizes || tbState.sizes;
+      if (!msg || !msg.state) return;
+      _syncing = true;
+      try {
+        // 恢复全部状态
+        Object.assign(tbState, msg.state);
+        tbSave();
+        if (msg.words) {
+          tbContentWord = msg.words.content || tbContentWord;
+          tbMktWord = msg.words.mkt || tbMktWord;
+          localStorage.setItem('he_toolbox_words', JSON.stringify(msg.words));
+          var cw = document.getElementById('tbContentWord');
+          var mw = document.getElementById('tbMktWord');
+          if (cw) cw.textContent = tbContentWord;
+          if (mw) mw.textContent = tbMktWord;
+        }
+        tbApplyLayout();
         tbApplySizes();
         tbHighlightFontPreset();
-      }
-      if (msg.type === 'position') {
+        tbRender();
         if (msg.pos === 'bottom') document.body.classList.add('tb-bottom');
         else document.body.classList.remove('tb-bottom');
         localStorage.setItem('tb-pos', msg.pos);
-        setTimeout(function() { window.dispatchEvent(new Event('resize')); }, 60);
-      }
-      if (msg.type === 'visibility') {
         if (msg.visible) { if (!document.body.classList.contains('tb-on')) document.body.classList.add('tb-on'); }
         else { document.body.classList.remove('tb-on'); }
-      }
+        flashSync();
+      } catch(e) {}
+      _syncing = false;
     };
 
-    // 在字体预设点击时同步
-    var origFontClick = false;
+    // 拦截 tbSave —— 任何状态变化都自动广播
+    var _origSave = window.tbSave;
+    window.tbSave = function() {
+      _origSave.apply(this, arguments);
+      setTimeout(function() { broadcast('auto'); }, 30);
+    };
+
+    // 字体预设点击
     document.querySelectorAll('.tb-font-preset').forEach(function(btn) {
-      btn.addEventListener('click', function() { setTimeout(function() { syncState('font'); }, 50); });
+      btn.addEventListener('click', function() { setTimeout(function() { broadcast('font'); }, 50); });
     });
 
-    // 位置切换同步
-    tbPosBtn.addEventListener('click', function() { setTimeout(function() { syncState('position'); }, 50); });
+    // 位置切换
+    tbPosBtn.addEventListener('click', function() { setTimeout(function() { broadcast('position'); }, 50); });
 
-    // Ctrl+H 显示/隐藏同步
+    // Ctrl+H 显示/隐藏
     document.addEventListener('keydown', function(e) {
-      if (e.ctrlKey && e.key === 'h') { setTimeout(function() { syncState('visibility'); }, 50); }
+      if (e.ctrlKey && e.key === 'h') { setTimeout(function() { broadcast('visibility'); }, 50); }
     });
-
-    // 拖拽结束时同步
-    document.addEventListener('mouseup', function() { setTimeout(function() { syncState('resize'); }, 100); });
   })();
   // Ctrl+H 开关
   function tbToggle() {
