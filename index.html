@@ -817,7 +817,7 @@
 
 <script>
   var songs = [
-    { singer: '王菲', date: '2026-09-04', name: '如愿', info: '唐恬词 · 钱雷曲 · 王菲演唱', file: 'ruyuan.jpg', original: 'BV1WitzzuETK' },
+    { singer: '王菲', date: '2026-09-04', name: '如愿', info: '唐恬词 · 钱雷曲 · 王菲演唱', files: ['ruyuan_1.jpg','ruyuan_2.jpg','ruyuan_3.jpg'], original: 'BV1WitzzuETK' },
     { singer: '王菲', date: '2026-09-02', name: '主角', info: '赖婷词 · 范炜曲 · 王菲演唱', file: 'zhujiao.jpg', original: 'BV1xpdcBQEXM', lyrics: '过了花期 才算果满枝低\n谁让绚烂是陈迹\n挨了雷电 才算站在云巅\n谁让你当群山的冠冕\n\n吞了流言 才算红了一遍\n谁让滚烫是烈焰\n浸了苦水 才叫命硬如岩\n谁让你皎洁得渗了盐\n\n我站在舞台中央\n影子被钉在墙上\n迎着光才刻下勋章\n寄言燕雀莫相啅\n自有云霄万里高\n天暗了月亮才会亮\n\n中了冷箭 才叫走在前面\n谁让你步履如燕\n断了孤弦 才算响彻云天\n谁让余音才能震屋檐\n\n我站在舞台中央\n影子被钉在墙上\n迎着光才刻下勋章\n寄言燕雀莫相啅\n自有云霄万里高\n天黑了月亮才更亮\n\n月亮爷 丈丈高 骑白马 过石桥\n石桥弯 照山川 万家灯火共团圆\n忆秦娥 步步高 练红绸 踩高跷\n高跷摇 登戏台 唱悲欢 震九霄\n\n我站在山河中央\n影子无冠也无裳\n方知本真无需扮装\n青山见我应如常\n如露如电如月在江\n照见我 是我的模样' },
     { singer: '邓丽君', date: '2026-08-28', name: '甜蜜蜜', info: '庄奴词 · 佚名曲 · 邓丽君演唱', file: 'tianmimi.jpg', original: 'BV1ua4y177vs' },
     { singer: '王菲', date: '2026-08-28', name: '红豆', info: '林夕词 · 陈小霞曲 · 王菲演唱', file: 'hongdou.jpg', original: 'BV1NJ411r7oz' },
@@ -876,30 +876,27 @@
   var btnAutoScroll = document.getElementById('btnAutoScroll');
   var scrollSpeedSelect = document.getElementById('scrollSpeed');
 
-  // 创建所有曲谱页面（图片一次性全部加载）
+  // 支持多页曲谱：songPageMap[歌曲索引] = [页面索引数组]
+  var songPageMap = [];
+  var _pageIdx = 0;
   songs.forEach(function(s, i) {
-    var page = document.createElement('div');
-    page.className = 'score-page' + (i === 0 ? ' active' : '');
+    var fileList = s.files || [s.file];
+    var pageIndices = [];
+    fileList.forEach(function(f, fi) {
+      var page = document.createElement('div');
+      page.className = 'score-page' + (_pageIdx === 0 ? ' active' : '');
+      page.dataset.songIdx = i;
+      page.dataset.pageIdx = fi;
 
-    var img = document.createElement('img');
-    img.alt = s.name;
-    img.src = s.file;
+      var img = document.createElement('img');
+      img.alt = s.name;
+      img.src = f;
 
     var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('class', 'highlight-layer');
 
     var pad = document.createElement('div');
     pad.className = 'bottom-pad';
-
-    page.appendChild(img);
-    page.appendChild(svg);
-    page.appendChild(pad);
-    scoreContainer.appendChild(page);
-
-    scorePages.push(page);
-    scoreImages.push(img);
-    highlightLayers.push(svg);
-    bottomPads.push(pad);
 
     img.onload = function() {
       svg.setAttribute('width', img.naturalWidth);
@@ -913,12 +910,27 @@
         if (isMobile) { setTimeout(fitToView, 100); setTimeout(fitToView, 400); }
       }
     };
+
+      page.appendChild(img);
+      page.appendChild(svg);
+      page.appendChild(pad);
+      scoreContainer.appendChild(page);
+
+      scorePages.push(page);
+      scoreImages.push(img);
+      highlightLayers.push(svg);
+      bottomPads.push(pad);
+      pageIndices.push(_pageIdx);
+      _pageIdx++;
+    });
+    songPageMap.push(pageIndices);
   });
 
-  function scoreImage() { return scoreImages[currentSongIndex]; }
-  function scoreWrapper() { return scorePages[currentSongIndex]; }
-  function highlightLayer() { return highlightLayers[currentSongIndex]; }
-  function bottomPad() { return bottomPads[currentSongIndex]; }
+  function _firstPage() { return (songPageMap[currentSongIndex] || [currentSongIndex])[0]; }
+  function scoreImage() { return scoreImages[_firstPage()]; }
+  function scoreWrapper() { return scorePages[_firstPage()]; }
+  function highlightLayer() { return highlightLayers[_firstPage()]; }
+  function bottomPad() { return bottomPads[_firstPage()]; }
 
   function renderSongList() {
     var list = document.getElementById('songList');
@@ -996,9 +1008,10 @@
     currentSongIndex = idx;
     var s = songs[idx];
 
-    // 切换可见页面
+    // 切换可见页面（支持多页曲谱）
+    var activePages = songPageMap[idx] || [idx];
     scorePages.forEach(function(p, i) {
-      if (i === idx) { p.classList.add('active'); }
+      if (activePages.indexOf(i) !== -1) { p.classList.add('active'); }
       else { p.classList.remove('active'); }
     });
 
