@@ -1014,24 +1014,30 @@
       var pos = activePages.indexOf(i);
       if (pos !== -1) {
         p.classList.add('active');
-        // 多页时纵向排列
+        // 多页时纵向排列，用 setProperty + important 覆盖 CSS !important 规则
         if (activePages.length > 1) {
-          p.style.top = 'auto';
-          p.style.position = 'relative';
-          p.style.transform = 'none';
-          p.style.margin = '0 auto 4px auto';
+          p.style.setProperty('position', 'relative', 'important');
+          p.style.setProperty('top', 'auto', 'important');
+          p.style.setProperty('left', 'auto', 'important');
+          p.style.setProperty('transform', 'none', 'important');
+          p.style.setProperty('transform-origin', 'top center', 'important');
+          p.style.setProperty('margin', '0 auto 4px auto', 'important');
         } else {
-          p.style.top = '';
-          p.style.position = '';
-          p.style.transform = '';
-          p.style.margin = '';
+          p.style.setProperty('position', '', 'important');
+          p.style.setProperty('top', '', 'important');
+          p.style.setProperty('left', '', 'important');
+          p.style.setProperty('transform', '', 'important');
+          p.style.setProperty('transform-origin', '', 'important');
+          p.style.setProperty('margin', '', 'important');
         }
       } else {
         p.classList.remove('active');
-        p.style.top = '';
-        p.style.position = '';
-        p.style.transform = '';
-        p.style.margin = '';
+        p.style.setProperty('position', '', 'important');
+        p.style.setProperty('top', '', 'important');
+        p.style.setProperty('left', '', 'important');
+        p.style.setProperty('transform', '', 'important');
+        p.style.setProperty('transform-origin', '', 'important');
+        p.style.setProperty('margin', '', 'important');
       }
     });
     // 多页时让容器可滚动（保持absolute定位，只改display和overflow）
@@ -1083,11 +1089,12 @@
         var pos = initPages.indexOf(i);
         if (pos !== -1) {
           p.classList.add('active');
-          p.style.top = 'auto';
-          p.style.left = 'auto';
-          p.style.position = 'relative';
-          p.style.transform = 'none';
-          p.style.margin = '0 auto 4px auto';
+          p.style.setProperty('position', 'relative', 'important');
+          p.style.setProperty('top', 'auto', 'important');
+          p.style.setProperty('left', 'auto', 'important');
+          p.style.setProperty('transform', 'none', 'important');
+          p.style.setProperty('transform-origin', 'top center', 'important');
+          p.style.setProperty('margin', '0 auto 4px auto', 'important');
         }
       });
       scoreContainer.style.display = 'flex';
@@ -1123,15 +1130,20 @@
     sw.style.transition = animate ? 'transform 0.15s ease-out' : 'none';
     var isMultiPage = (songPageMap[currentSongIndex] || []).length > 1;
     if (isMultiPage) {
+      // 多页模式：容器可滚动，页面只做缩放
       var activePages = songPageMap[currentSongIndex] || [];
       activePages.forEach(function(pageIdx) {
         var p = scorePages[pageIdx];
         if (p) {
           p.style.transition = animate ? 'transform 0.15s ease-out' : 'none';
-          p.style.transform = 'scale(' + currentScale + ')';
-          p.style.transformOrigin = 'top center';
+          p.style.setProperty('transform', 'scale(' + currentScale + ')', 'important');
+          p.style.setProperty('transform-origin', 'top center', 'important');
         }
       });
+      // 多页拖动：通过 scrollTop 滚动
+      if (typeof _multiPageScrollTop === 'number') {
+        scoreContainer.scrollTop = _multiPageScrollTop;
+      }
     } else {
       sw.style.transform = 'translate(calc(-50% + ' + panX + 'px), calc(-50% + ' + panY + 'px)) scale(' + currentScale + ')';
     }
@@ -1269,9 +1281,15 @@
       currentRect.setAttribute('width', Math.abs(pt.x - drawStartX));
       currentRect.setAttribute('height', Math.abs(pt.y - drawStartY));
     } else if (isDragging) {
-      panX = dragPanStartX + (e.clientX - dragStartX);
-      panY = dragPanStartY + (e.clientY - dragStartY);
-      clampPan(); updateTransform(false);
+      var isMultiPage = (songPageMap[currentSongIndex] || []).length > 1;
+      if (isMultiPage) {
+        _multiPageScrollTop = Math.max(0, _dragScrollStart - (e.clientY - dragStartY));
+        scoreContainer.scrollTop = _multiPageScrollTop;
+      } else {
+        panX = dragPanStartX + (e.clientX - dragStartX);
+        panY = dragPanStartY + (e.clientY - dragStartY);
+        clampPan(); updateTransform(false);
+      }
     }
   });
 
@@ -1307,7 +1325,12 @@
     } else if (e.touches.length === 1) {
       isDragging = true;
       dragStartX = e.touches[0].clientX; dragStartY = e.touches[0].clientY;
-      dragPanStartX = panX; dragPanStartY = panY;
+      var isMultiPage = (songPageMap[currentSongIndex] || []).length > 1;
+      if (isMultiPage) {
+        _dragScrollStart = scoreContainer.scrollTop;
+      } else {
+        dragPanStartX = panX; dragPanStartY = panY;
+      }
     } else if (e.touches.length === 2) {
       isDragging = false;
       lastTouchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
@@ -1322,9 +1345,16 @@
       currentRect.setAttribute('height', Math.abs(pt.y - touchDrawStart.y));
       e.preventDefault();
     } else if (e.touches.length === 1 && isDragging) {
-      panX = dragPanStartX + (e.touches[0].clientX - dragStartX);
-      panY = dragPanStartY + (e.touches[0].clientY - dragStartY);
-      clampPan(); updateTransform(false); e.preventDefault();
+      var isMultiPage = (songPageMap[currentSongIndex] || []).length > 1;
+      if (isMultiPage) {
+        _multiPageScrollTop = Math.max(0, _dragScrollStart - (e.touches[0].clientY - dragStartY));
+        scoreContainer.scrollTop = _multiPageScrollTop;
+      } else {
+        panX = dragPanStartX + (e.touches[0].clientX - dragStartX);
+        panY = dragPanStartY + (e.touches[0].clientY - dragStartY);
+        clampPan(); updateTransform(false);
+      }
+      e.preventDefault();
     } else if (e.touches.length === 2) {
       var dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
       currentScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, currentScale * (dist / lastTouchDist)));
