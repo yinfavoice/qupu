@@ -1040,19 +1040,11 @@
         p.style.setProperty('margin', '', 'important');
       }
     });
-    // 多页时让容器可滚动（保持absolute定位，只改display和overflow）
+    // 多页时让容器可滚动
     if (activePages.length > 1) {
-      scoreContainer.style.display = 'flex';
-      scoreContainer.style.flexDirection = 'column';
-      scoreContainer.style.alignItems = 'center';
-      scoreContainer.style.overflowY = 'auto';
-      scoreContainer.style.justifyContent = 'flex-start';
+      scoreContainer.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;overflow-y:auto;justify-content:flex-start;-webkit-overflow-scrolling:touch;';
     } else {
-      scoreContainer.style.display = '';
-      scoreContainer.style.flexDirection = '';
-      scoreContainer.style.alignItems = '';
-      scoreContainer.style.overflowY = '';
-      scoreContainer.style.justifyContent = '';
+      scoreContainer.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;';
     }
 
     document.getElementById('tbSong').textContent = s.name;
@@ -1108,13 +1100,10 @@
           p.style.setProperty('transform', 'none', 'important');
           p.style.setProperty('transform-origin', 'top center', 'important');
           p.style.setProperty('margin', '0 auto 4px auto', 'important');
+          p.style.setProperty('flex-shrink', '0', 'important');
         }
       });
-      scoreContainer.style.display = 'flex';
-      scoreContainer.style.flexDirection = 'column';
-      scoreContainer.style.alignItems = 'center';
-      scoreContainer.style.overflowY = 'auto';
-      scoreContainer.style.justifyContent = 'flex-start';
+      scoreContainer.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;overflow-y:auto;justify-content:flex-start;-webkit-overflow-scrolling:touch;';
     }
   })();
 
@@ -1143,14 +1132,21 @@
     sw.style.transition = animate ? 'transform 0.15s ease-out' : 'none';
     var isMultiPage = (songPageMap[currentSongIndex] || []).length > 1;
     if (isMultiPage) {
-      // 多页模式：容器可滚动，页面只做缩放
+      // 多页模式：通过显式宽高+overflowY:auto实现滚动（不用transform scale，避免布局尺寸不匹配导致裁剪）
       var activePages = songPageMap[currentSongIndex] || [];
       activePages.forEach(function(pageIdx) {
         var p = scorePages[pageIdx];
         if (p) {
-          p.style.transition = animate ? 'transform 0.15s ease-out' : 'none';
-          p.style.setProperty('transform', 'scale(' + currentScale + ')', 'important');
-          p.style.setProperty('transform-origin', 'top center', 'important');
+          var pImg = p.querySelector('img');
+          if (pImg && _scaledWidth > 0) {
+            var sH = Math.round(pImg.naturalHeight * (_scaledWidth / pImg.naturalWidth));
+            p.style.width = Math.round(_scaledWidth) + 'px';
+            p.style.height = sH + 'px';
+            pImg.style.width = '100%';
+            pImg.style.height = '100%';
+            pImg.style.maxWidth = '100%';
+            pImg.style.maxHeight = '100%';
+          }
         }
       });
       // 多页拖动：通过 scrollTop 滚动
@@ -1224,25 +1220,44 @@
     }
   }
 
+  var _scaledWidth = 0, _scaledHeight = 0;
+  var _prevScrollFraction = -1;
   function fitToView() {
     var img = scoreImage();
     if (!img || !img.naturalWidth) return;
+    if (!viewArea.clientWidth || !viewArea.clientHeight) return;
     var isMultiPage = (songPageMap[currentSongIndex] || []).length > 1;
     var availW = viewArea.clientWidth;
     var availH = viewArea.clientHeight;
     var padH = bottomPad().offsetHeight;
+    // 保存当前滚动位置比例（窗口大小变化时保持阅读位置）
+    if (isMultiPage && scoreContainer.scrollHeight > scoreContainer.clientHeight) {
+      _prevScrollFraction = scoreContainer.scrollTop / (scoreContainer.scrollHeight - scoreContainer.clientHeight);
+    }
     if (isMultiPage) {
-      // 多页：按宽度适配，纵向滚动
       currentScale = (availW / img.naturalWidth) * 0.96;
+      _scaledWidth = img.naturalWidth * currentScale;
+      _scaledHeight = img.naturalHeight * currentScale;
       panX = 0; panY = 0;
     } else {
       var imgH = img.naturalHeight + padH;
       var scaleW = availW / img.naturalWidth;
       var scaleH = availH / imgH;
       currentScale = Math.min(scaleW, scaleH) * 0.96;
+      _scaledWidth = img.naturalWidth * currentScale;
+      _scaledHeight = img.naturalHeight * currentScale;
       panX = 0; panY = 0;
     }
     updateTransform(true);
+    // 恢复滚动位置比例
+    if (isMultiPage && _prevScrollFraction >= 0) {
+      var maxScroll = scoreContainer.scrollHeight - scoreContainer.clientHeight;
+      if (maxScroll > 0) {
+        scoreContainer.scrollTop = _prevScrollFraction * maxScroll;
+        _multiPageScrollTop = scoreContainer.scrollTop;
+      }
+      _prevScrollFraction = -1;
+    }
   }
 
   function fillView() {
@@ -2458,10 +2473,7 @@
           type: 'curpu',
           curpuState: {
             songIndex: currentSongIndex,
-            panX: panX,
-            panY: panY,
-            scale: currentScale,
-            scrollTop: scoreContainer.scrollTop
+            scale: currentScale
           }
         });
       } catch(e) {}
@@ -2498,12 +2510,6 @@
             selectSong(cs.songIndex);
           }
           currentScale = cs.scale;
-          panX = cs.panX;
-          panY = cs.panY;
-          var isMultiPage = (songPageMap[currentSongIndex] || []).length > 1;
-          if (isMultiPage) {
-            scoreContainer.scrollTop = cs.scrollTop;
-          }
           updateTransform(false);
           flashSync();
         } catch(e) {}
