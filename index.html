@@ -2339,6 +2339,9 @@
       } catch(e) {}
     }
 
+    // 先保存原始 tbSave 引用，供 onmessage 和拦截器使用
+    var _origSave = window.tbSave;
+
     bc.onmessage = function(ev) {
       var msg = ev.data;
       if (!msg || !msg.state) return;
@@ -2346,7 +2349,8 @@
       try {
         // 恢复全部状态
         Object.assign(tbState, msg.state);
-        tbSave();
+        // 直接调用原始 tbSave 保存 localStorage，不触发广播，避免循环
+        _origSave();
         if (msg.words) {
           tbContentWord = msg.words.content || tbContentWord;
           tbMktWord = msg.words.mkt || tbMktWord;
@@ -2370,11 +2374,10 @@
       _syncing = false;
     };
 
-    // 拦截 tbSave —— 任何状态变化都自动广播
-    var _origSave = window.tbSave;
+    // 拦截 tbSave —— 任何状态变化都自动广播（接收同步时不触发）
     window.tbSave = function() {
       _origSave.apply(this, arguments);
-      setTimeout(function() { broadcast('auto'); }, 30);
+      if (!_syncing) setTimeout(function() { broadcast('auto'); }, 30);
     };
 
     // 字体预设点击
