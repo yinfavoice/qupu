@@ -1008,12 +1008,48 @@
     currentSongIndex = idx;
     var s = songs[idx];
 
-    // 切换可见页面（支持多页曲谱）
+    // 切换可见页面（支持多页曲谱，纵向排列）
     var activePages = songPageMap[idx] || [idx];
     scorePages.forEach(function(p, i) {
-      if (activePages.indexOf(i) !== -1) { p.classList.add('active'); }
-      else { p.classList.remove('active'); }
+      var pos = activePages.indexOf(i);
+      if (pos !== -1) {
+        p.classList.add('active');
+        // 多页时纵向排列
+        if (activePages.length > 1) {
+          p.style.top = 'auto';
+          p.style.position = 'relative';
+          p.style.transform = 'none';
+          p.style.margin = '0 auto 4px auto';
+        } else {
+          p.style.top = '';
+          p.style.position = '';
+          p.style.transform = '';
+          p.style.margin = '';
+        }
+      } else {
+        p.classList.remove('active');
+        p.style.top = '';
+        p.style.position = '';
+        p.style.transform = '';
+        p.style.margin = '';
+      }
     });
+    // 多页时让容器可滚动
+    if (activePages.length > 1) {
+      scoreContainer.style.display = 'flex';
+      scoreContainer.style.flexDirection = 'column';
+      scoreContainer.style.alignItems = 'center';
+      scoreContainer.style.position = 'relative';
+      scoreContainer.style.overflow = 'auto';
+      scoreContainer.style.height = '100%';
+    } else {
+      scoreContainer.style.display = '';
+      scoreContainer.style.flexDirection = '';
+      scoreContainer.style.alignItems = '';
+      scoreContainer.style.position = '';
+      scoreContainer.style.overflow = '';
+      scoreContainer.style.height = '';
+    }
 
     document.getElementById('tbSong').textContent = s.name;
     document.getElementById('tbInfo').textContent = s.info;
@@ -1040,6 +1076,29 @@
   });
 
   renderSongList();
+
+  // 初始化多页曲谱布局（首首歌可能需要多页显示）
+  (function() {
+    var initPages = songPageMap[0] || [0];
+    if (initPages.length > 1) {
+      scorePages.forEach(function(p, i) {
+        var pos = initPages.indexOf(i);
+        if (pos !== -1) {
+          p.classList.add('active');
+          p.style.top = 'auto';
+          p.style.position = 'relative';
+          p.style.transform = 'none';
+          p.style.margin = '0 auto 4px auto';
+        }
+      });
+      scoreContainer.style.display = 'flex';
+      scoreContainer.style.flexDirection = 'column';
+      scoreContainer.style.alignItems = 'center';
+      scoreContainer.style.position = 'relative';
+      scoreContainer.style.overflow = 'auto';
+      scoreContainer.style.height = '100%';
+    }
+  })();
 
   searchInput.addEventListener('input', function() {
     searchKeyword = this.value;
@@ -1132,20 +1191,21 @@
   function fitToView() {
     var img = scoreImage();
     if (!img || !img.naturalWidth) return;
-    // 手机端需要减去工具栏和歌名栏占用的高度，确保整张谱可见
+    var isMultiPage = (songPageMap[currentSongIndex] || []).length > 1;
     var availW = viewArea.clientWidth;
     var availH = viewArea.clientHeight;
-    if (isMobile) {
-      var tb = document.getElementById('toolbar');
-      var titlebar = document.getElementById('titleBar');
-      availH = viewArea.clientHeight;
-    }
     var padH = bottomPad().offsetHeight;
-    var imgH = img.naturalHeight + padH;
-    var scaleW = availW / img.naturalWidth;
-    var scaleH = availH / imgH;
-    currentScale = Math.min(scaleW, scaleH) * 0.96;
-    panX = 0; panY = 0;
+    if (isMultiPage) {
+      // 多页：按宽度适配，纵向滚动
+      currentScale = (availW / img.naturalWidth) * 0.96;
+      panX = 0; panY = 0;
+    } else {
+      var imgH = img.naturalHeight + padH;
+      var scaleW = availW / img.naturalWidth;
+      var scaleH = availH / imgH;
+      currentScale = Math.min(scaleW, scaleH) * 0.96;
+      panX = 0; panY = 0;
+    }
     updateTransform(true);
   }
 
