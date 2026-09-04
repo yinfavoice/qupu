@@ -1061,6 +1061,7 @@
     renderSongList();
     renderAll();
     fitToView();
+    if (typeof broadcastCurpu === 'function') broadcastCurpu();
   }
 
   // 手机端目录开关
@@ -1260,6 +1261,7 @@
     var step = currentScale > 2 ? ZOOM_STEP * 1.5 : ZOOM_STEP;
     currentScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, currentScale + delta * (delta > 0 ? step : step)));
     clampPan(); updateTransform(false);
+    if (typeof broadcastCurpu === 'function') broadcastCurpu();
   }, { passive: false });
 
   viewArea.addEventListener('mousedown', function(e) {
@@ -1323,6 +1325,7 @@
     }
     isDragging = false;
     viewArea.classList.remove('dragging');
+    if (typeof broadcastCurpu === 'function') broadcastCurpu();
   });
 
   var lastTouchDist = 0;
@@ -1390,24 +1393,27 @@
       isDrawing = false; currentRect = null;
     }
     isDragging = false;
+    if (typeof broadcastCurpu === 'function') broadcastCurpu();
   });
 
   viewArea.addEventListener('dblclick', function(e) {
     if (currentMode !== 'pan') return;
     if (currentScale < 2.5) { fillView(); } else { fitToView(); }
+    if (typeof broadcastCurpu === 'function') broadcastCurpu();
   });
 
   document.getElementById('btnZoomIn').addEventListener('click', function() {
     var step = currentScale > 2 ? ZOOM_STEP * 1.5 : ZOOM_STEP;
     currentScale = Math.min(MAX_SCALE, currentScale + step);
     clampPan(); updateTransform(true);
+    if (typeof broadcastCurpu === 'function') broadcastCurpu();
   });
   document.getElementById('btnZoomOut').addEventListener('click', function() {
     var step = currentScale > 2 ? ZOOM_STEP * 1.5 : ZOOM_STEP;
     currentScale = Math.max(MIN_SCALE, currentScale - step);
     clampPan(); updateTransform(true);
   });
-  document.getElementById('btnFill').addEventListener('click', fillView);
+  document.getElementById('btnFill').addEventListener('click', function() { fillView(); if (typeof broadcastCurpu === 'function') broadcastCurpu(); });
 
   btnAnnotate.addEventListener('click', function() { setMode(currentMode === 'annotate' ? 'pan' : 'annotate'); });
   btnCover.addEventListener('click', function() { setMode(currentMode === 'cover' ? 'pan' : 'cover'); });
@@ -2433,6 +2439,22 @@
       _syncFlash._t = setTimeout(function() { _syncFlash.style.opacity = '0'; }, 600);
     }
 
+    function broadcastCurpu() {
+      if (_syncing) return;
+      try {
+        bc.postMessage({
+          type: 'curpu',
+          curpuState: {
+            songIndex: currentSongIndex,
+            panX: panX,
+            panY: panY,
+            scale: currentScale,
+            scrollTop: scoreContainer.scrollTop
+          }
+        });
+      } catch(e) {}
+    }
+
     function broadcast(type) {
       if (_syncing) return;
       try {
@@ -2455,6 +2477,27 @@
       // 报警类消息无需 state，立即处理
       if (msg.type === 'alarm') { showAlarm(msg.msg || '该营销了'); return; }
       if (msg.type === 'alarm_dismiss') { hideAlarm_local(); return; }
+      // 曲谱页面状态同步
+      if (msg.type === 'curpu' && msg.curpuState) {
+        _syncing = true;
+        try {
+          var cs = msg.curpuState;
+          if (cs.songIndex !== currentSongIndex) {
+            selectSong(cs.songIndex);
+          }
+          currentScale = cs.scale;
+          panX = cs.panX;
+          panY = cs.panY;
+          var isMultiPage = (songPageMap[currentSongIndex] || []).length > 1;
+          if (isMultiPage) {
+            scoreContainer.scrollTop = cs.scrollTop;
+          }
+          updateTransform(false);
+          flashSync();
+        } catch(e) {}
+        _syncing = false;
+        return;
+      }
       if (!msg.state) return;
       _syncing = true;
       try {
