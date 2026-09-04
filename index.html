@@ -2350,7 +2350,11 @@
 
     bc.onmessage = function(ev) {
       var msg = ev.data;
-      if (!msg || !msg.state) return;
+      if (!msg) return;
+      // 报警类消息无需 state，立即处理
+      if (msg.type === 'alarm') { showAlarm(msg.msg || '该营销了'); return; }
+      if (msg.type === 'alarm_dismiss') { hideAlarm_local(); return; }
+      if (!msg.state) return;
       _syncing = true;
       try {
         // 恢复全部状态
@@ -2370,8 +2374,6 @@
         tbApplySizes();
         tbHighlightFontPreset();
         tbRender();
-        if (msg.type === 'alarm') { showAlarm(msg.msg || '该营销了'); }
-        if (msg.type === 'alarm_dismiss') { hideAlarm_local(); }
         if (msg.pos === 'bottom') document.body.classList.add('tb-bottom');
         else document.body.classList.remove('tb-bottom');
         localStorage.setItem('tb-pos', msg.pos);
