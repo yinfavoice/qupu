@@ -1599,7 +1599,7 @@
     if (!song || !song.original) return;
     originalTitle.textContent = '♪ ' + song.name + ' - ' + song.singer;
     originalBiliLink.href = 'https://www.bilibili.com/video/' + song.original + '/';
-    originalFrame.src = '//player.bilibili.com/player.html?bvid=' + song.original + '&high_quality=1&danmaku=0';
+    originalFrame.src = '//player.bilibili.com/player.html?bvid=' + song.original + '&high_quality=1&danmaku=0&autoplay=0';
     originalModal.classList.add('open');
   }
 
