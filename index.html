@@ -687,17 +687,14 @@
       </div>
     </div>
     <div class="tb-rh" data-row="1"></div>
-    <div class="tb-row tb-split" id="tbRow2">
-      <div class="tb-half" id="tbR2c1">
-        <div class="tb-label">当前环节</div>
-        <div class="tb-name" id="tbCurName">未设置</div>
-        <div class="tb-time" id="tbCurTime">--:--</div>
-      </div>
-      <div class="tb-cv"></div>
-      <div class="tb-half" id="tbR2c2">
-        <div class="tb-label">下一环节</div>
-        <div class="tb-name" id="tbNextName">未设置</div>
-        <div class="tb-time" id="tbNextTime">--:--</div>
+    <div class="tb-row" id="tbRow2">
+      <div class="tb-label">当前 / 下一环节</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span id="tbCurName" style="font-weight:700;font-size:inherit;">未设置</span>
+        <span id="tbCurTime" style="opacity:0.75;">--:--</span>
+        <span style="opacity:0.35;margin:0 4px;">→</span>
+        <span id="tbNextName" style="font-weight:700;font-size:inherit;">未设置</span>
+        <span id="tbNextTime" style="opacity:0.75;">--:--</span>
       </div>
     </div>
     <div class="tb-rh" data-row="2"></div>
@@ -1926,7 +1923,7 @@
     if (tbState.mktDue) {
       mktEl.textContent = '该营销了';
       mktEl.classList.add('over');
-      if (!tbState.mktNotified && tbState.liveRunning) { tbState.mktNotified = true; tbBeep(); tbSave(); }
+      if (!tbState.mktNotified && tbState.liveRunning) { tbState.mktNotified = true; tbBeep(); tbSave(); try{window._syncCh&&window._syncCh.postMessage({type:'alarm',msg:'该营销了'})}catch(e){} }
     } else {
       mktEl.textContent = fmtMM(mktRemain);
       mktEl.classList.toggle('over', mktRemain < 60);
@@ -2076,13 +2073,12 @@
     tbSave(); tbApplySizes(); tbRefreshSizer();
   });
   document.addEventListener('mousedown', function(e) {
-    if (tbSizer.classList.contains('open') && !tbSizer.contains(e.target) && !e.target.closest('.tb-half')) tbCloseSizer();
+    if (tbSizer.classList.contains('open') && !tbSizer.contains(e.target) && !e.target.closest('.tb-half') && !e.target.closest('#tbRow2')) tbCloseSizer();
   });
   [
     ['live', '已播时间', 'tbR1c1'],
     ['mkt', '营销倒计时', 'tbR1c2'],
-    ['cur', '当前环节', 'tbR2c1'],
-    ['next', '下一环节', 'tbR2c2']
+    ['cur', '当前/下一环节', 'tbRow2']
   ].forEach(function(item) {
     var el = document.getElementById(item[2]);
     if (!el) return;
@@ -2313,7 +2309,7 @@
   // 跨窗口同步（BroadcastChannel）— 全量状态同步
   (function() {
     var bc = null;
-    try { bc = new BroadcastChannel('he-qupu-sync'); } catch(e) {}
+    try { bc = new BroadcastChannel('he-qupu-sync'); window._syncCh = bc; } catch(e) {}
     if (!bc) return;
     var _syncing = false;
     var _syncFlash = null;
@@ -2338,7 +2334,7 @@
           state: JSON.parse(JSON.stringify(tbState)),
           words: { content: tbContentWord, mkt: tbMktWord },
           pos: document.body.classList.contains('tb-bottom') ? 'bottom' : 'right',
-          visible: document.body.classList.contains('tb-on')
+
         });
       } catch(e) {}
     }
@@ -2364,11 +2360,11 @@
         tbApplySizes();
         tbHighlightFontPreset();
         tbRender();
+        if (msg.type === 'alarm') { showAlarm(msg.msg || '该营销了'); }
         if (msg.pos === 'bottom') document.body.classList.add('tb-bottom');
         else document.body.classList.remove('tb-bottom');
         localStorage.setItem('tb-pos', msg.pos);
-        if (msg.visible) { if (!document.body.classList.contains('tb-on')) document.body.classList.add('tb-on'); }
-        else { document.body.classList.remove('tb-on'); }
+
         flashSync();
       } catch(e) {}
       _syncing = false;
@@ -2389,10 +2385,7 @@
     // 位置切换
     tbPosBtn.addEventListener('click', function() { setTimeout(function() { broadcast('position'); }, 50); });
 
-    // Ctrl+H 显示/隐藏
-    document.addEventListener('keydown', function(e) {
-      if (e.ctrlKey && e.key === 'h') { setTimeout(function() { broadcast('visibility'); }, 50); }
-    });
+
   })();
   // Ctrl+H 开关
   function tbToggle() {
