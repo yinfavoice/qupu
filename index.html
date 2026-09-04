@@ -1860,8 +1860,12 @@
       }
     } catch (e) {}
   }
+  function hideAlarm_local() {
+    document.getElementById('alarmOverlay').classList.remove('active');
+  }
   function hideAlarm() {
     document.getElementById('alarmOverlay').classList.remove('active');
+    try{window._syncCh&&window._syncCh.postMessage({type:'alarm_dismiss'})}catch(e){}
   }
   document.getElementById('alarmCloseBtn').addEventListener('click', hideAlarm);
   function openAlarmPicker() {
@@ -1880,6 +1884,7 @@
         var reason = btn.dataset.alarm;
         closeTbModal();
         showAlarm(reason);
+        try{window._syncCh&&window._syncCh.postMessage({type:'alarm',msg:reason})}catch(e){}
       });
     });
     var customBtn = tbModalBox.querySelector('[data-custom-alarm]');
@@ -1897,6 +1902,7 @@
       if (!txt) { alert('请输入报警内容'); return; }
       closeTbModal();
       showAlarm(txt);
+      try{window._syncCh&&window._syncCh.postMessage({type:'alarm',msg:txt})}catch(e){}
     });
   }
 
@@ -2365,6 +2371,7 @@
         tbHighlightFontPreset();
         tbRender();
         if (msg.type === 'alarm') { showAlarm(msg.msg || '该营销了'); }
+        if (msg.type === 'alarm_dismiss') { hideAlarm_local(); }
         if (msg.pos === 'bottom') document.body.classList.add('tb-bottom');
         else document.body.classList.remove('tb-bottom');
         localStorage.setItem('tb-pos', msg.pos);
