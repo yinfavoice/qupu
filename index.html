@@ -1138,6 +1138,11 @@
     var isMultiPage = (songPageMap[currentSongIndex] || []).length > 1;
     if (isMultiPage) {
       // 多页模式：通过显式宽高+overflowY:auto实现滚动（不用transform scale，避免布局尺寸不匹配导致裁剪）
+      var _mpImg = scoreImage();
+      if (_mpImg && _mpImg.naturalWidth) {
+        _scaledWidth = _mpImg.naturalWidth * currentScale;
+        _scaledHeight = _mpImg.naturalHeight * currentScale;
+      }
       var activePages = songPageMap[currentSongIndex] || [];
       activePages.forEach(function(pageIdx) {
         var p = scorePages[pageIdx];
