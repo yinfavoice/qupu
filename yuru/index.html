@@ -271,12 +271,14 @@
 
   var songPageMap = [];
   var _pageIdx = 0;
+  var _totalImgs = 0, _loadedImgs = 0, _layoutDone = false;
   songs.forEach(function(s, i) {
     var fileList = s.files || [s.file];
+    _totalImgs += fileList.length;
     var pageIndices = [];
     fileList.forEach(function(f, fi) {
       var page = document.createElement('div');
-      page.className = 'score-page' + (_pageIdx === 0 ? ' active' : '');
+      page.className = 'score-page';
       page.dataset.songIdx = i; page.dataset.pageIdx = fi;
       var img = document.createElement('img'); img.alt = s.name; img.src = f;
       var svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
@@ -286,8 +288,16 @@
         svg.setAttribute('width', img.naturalWidth);
         svg.setAttribute('height', img.naturalHeight);
         pad.style.height = Math.max(120, Math.round(img.naturalHeight*0.15))+'px';
-        if (i === currentSongIndex) { renderAll(); fitToView(); }
+        _loadedImgs++;
+        if(!_layoutDone && _loadedImgs>=_totalImgs){
+          _layoutDone=true;
+          // 全部加载完成，统一布局一次（避免反复缩放闪烁）
+          applyLayout(currentSongIndex);
+          fitToView();
+          renderSongList();
+        }
       };
+      img.onerror = function(){ _loadedImgs++; if(!_layoutDone && _loadedImgs>=_totalImgs){ _layoutDone=true; applyLayout(currentSongIndex); fitToView(); renderSongList(); } };
       page.appendChild(img); page.appendChild(svg); page.appendChild(pad);
       scoreContainer.appendChild(page);
       scorePages.push(page); scoreImages.push(img); highlightLayers.push(svg); bottomPads.push(pad);
@@ -339,11 +349,7 @@
     });
   }
 
-  function selectSong(idx){
-    if(idx===currentSongIndex) return;
-    if(isAutoScrolling){ stopAutoScroll(); }
-    currentSongIndex=idx;
-    var s=songs[idx];
+  function applyLayout(idx){
     var activePages=songPageMap[idx]||[idx];
     scorePages.forEach(function(p,i){
       var pos=activePages.indexOf(i);
@@ -369,6 +375,14 @@
     } else {
       scoreContainer.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;';
     }
+  }
+
+  function selectSong(idx){
+    if(idx===currentSongIndex) return;
+    if(isAutoScrolling){ stopAutoScroll(); }
+    currentSongIndex=idx;
+    var s=songs[idx];
+    applyLayout(idx);
     document.getElementById('tbSong').textContent=s.name;
     document.getElementById('tbInfo').textContent=s.info;
     var db=document.getElementById('downloadBtn');
@@ -510,9 +524,10 @@
   }
   function closeVideo(){ document.getElementById('videoModal').classList.remove('open'); document.getElementById('videoFrame').src=''; }
 
-  // 初始
-  fitToView();
+  // 初始（布局在所有曲谱图片加载完后统一执行，见 img.onload）
   renderSongList();
+  // 兜底：若图片已被浏览器缓存导致 onload 未触发，延时布局一次
+  setTimeout(function(){ if(!_layoutDone){ _layoutDone=true; applyLayout(currentSongIndex); fitToView(); renderSongList(); } }, 800);
 </script>
 </body>
 </html>
