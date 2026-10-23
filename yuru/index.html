@@ -71,12 +71,9 @@
     font-size: calc(var(--sb-w)*0.085); font-weight:600; cursor:pointer;
     display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 2px 8px rgba(233,160,69,0.3);
   }
-  .replay-btn:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(233,160,69,0.4); }
   .replay-btn:active { transform:translateY(0); background:#c8762f; }
 
   .content-wrapper { flex:1; display:flex; flex-direction:column; height:100vh; height:100dvh; position:relative; background:#e8e8e8; min-width:0; }
-  .content { flex:1; overflow:hidden; position:relative; cursor:grab; }
-  .content.dragging { cursor:grabbing; }
 
   .menu-btn { display:none; position:absolute; top:8px; left:8px; z-index:21; height:36px; padding:0 16px; border:none; border-radius:18px; background:rgba(0,0,0,0.6); color:#fff; font-size:15px; font-weight:600; cursor:pointer; }
   .mobile-replay-btn { display:none; position:absolute; top:8px; left:92px; z-index:21; height:36px; padding:0 10px; border:none; border-radius:18px; background:rgba(233,160,69,0.9); color:#fff; font-size:13px; font-weight:600; cursor:pointer; }
@@ -86,42 +83,35 @@
   .title-bar {
     position:absolute; top:0; left:0; right:0; z-index:20;
     background: linear-gradient(180deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.5) 70%, rgba(0,0,0,0) 100%);
-    padding:14px 50px 20px 24px; pointer-events:none;
+    padding:24px 56px 26px 24px; pointer-events:none;
     display:flex; align-items:baseline; gap:16px; flex-wrap:wrap; transition:opacity .25s, transform .25s;
   }
   .title-bar.hidden { opacity:0; transform:translateY(-100%); pointer-events:none; }
   .title-bar .tb-song { font-size:22px; font-weight:700; color:#fff; letter-spacing:2px; text-shadow:0 1px 4px rgba(0,0,0,0.5); }
   .title-bar .tb-info { font-size:13px; color:rgba(255,255,255,0.75); text-shadow:0 1px 3px rgba(0,0,0,0.5); }
-  .download-btn { pointer-events:auto; position:absolute; right:48px; top:8px; height:28px; padding:0 12px; border:none; border-radius:15px; background:rgba(233,160,69,0.85); color:#fff; font-size:12px; font-weight:600; cursor:pointer; display:none; align-items:center; gap:4px; }
+  .download-btn { pointer-events:auto; position:absolute; right:48px; top:16px; height:28px; padding:0 12px; border:none; border-radius:15px; background:rgba(233,160,69,0.85); color:#fff; font-size:12px; font-weight:600; cursor:pointer; display:none; align-items:center; gap:4px; }
   .download-btn.visible { display:flex; }
-  .tb-toggle { pointer-events:auto; position:absolute; right:12px; top:10px; width:28px; height:28px; border:none; border-radius:50%; background:rgba(255,255,255,0.15); color:rgba(255,255,255,0.8); font-size:13px; cursor:pointer; }
-  .show-title-btn { position:absolute; top:8px; right:8px; z-index:19; height:30px; padding:0 14px; border:none; border-radius:15px; background:rgba(0,0,0,0.55); color:rgba(255,255,255,0.85); font-size:12px; cursor:pointer; display:none; align-items:center; }
+  .tb-toggle { pointer-events:auto; position:absolute; right:12px; top:18px; width:28px; height:28px; border:none; border-radius:50%; background:rgba(255,255,255,0.15); color:rgba(255,255,255,0.8); font-size:13px; cursor:pointer; }
 
-  .score-container { position:absolute; top:0; left:0; width:100%; height:100%; }
-  .score-page { position:absolute; top:50%; left:50%; background:#fff; transform:translate(-50%,-50%) scale(1); transform-origin:center center; transition:transform .15s ease-out; box-shadow:0 2px 20px rgba(0,0,0,0.15); display:none; }
-  .score-page.active { display:block; }
-  .score-page img { display:block; max-width:none; max-height:none; pointer-events:none; }
-  .highlight-layer { position:absolute; top:0; left:0; pointer-events:none; }
-  .highlight-layer.interactive { pointer-events:auto; }
-  .highlight-rect { fill:rgba(255,220,50,0.45); stroke:rgba(255,180,0,0.6); stroke-width:1; }
-  .cover-rect { fill:#fff; stroke:none; }
-  .bottom-pad { width:100%; background:#fff; }
+  .content-area { position:relative; flex:1; overflow:hidden; background:#e8e8e8; }
+  .scroll-view { position:absolute; inset:0; overflow:auto; -webkit-overflow-scrolling:touch; transform-origin:0 0; }
+  .score-img { display:block; margin:0 auto; width:100%; max-width:none; pointer-events:none; }
 
   .toolbar {
-    height:52px; flex-shrink:0; background:rgba(20,20,20,0.95); border-top:1px solid rgba(255,255,255,0.1);
-    display:flex; align-items:center; justify-content:center; padding:0 50px 0 20px; gap:10px; position:relative; transition:transform .25s, opacity .25s; overflow-x:auto;
+    height:50px; flex-shrink:0; background:rgba(20,20,20,0.95); border-top:1px solid rgba(255,255,255,0.1);
+    display:flex; align-items:center; justify-content:center; padding:0 40px 0 10px; gap:8px; position:relative; overflow-x:auto;
   }
   .toolbar::-webkit-scrollbar { display:none; }
-  .toolbar.hidden { transform:translateY(100%); opacity:0; pointer-events:none; position:absolute; bottom:0; left:0; right:0; }
-  .tb-toolbar-toggle { position:absolute; right:12px; top:50%; transform:translateY(-50%); width:28px; height:28px; border:none; border-radius:50%; background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.7); font-size:13px; cursor:pointer; }
-  .toolbar button { height:36px; min-width:36px; padding:0 10px; border:none; border-radius:6px; background:rgba(255,255,255,0.1); color:#fff; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; white-space:nowrap; flex-shrink:0; }
+  .toolbar button { height:34px; min-width:34px; padding:0 10px; border:none; border-radius:6px; background:rgba(255,255,255,0.1); color:#fff; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; white-space:nowrap; flex-shrink:0; }
   .toolbar button:active { background:rgba(233,160,69,0.4); }
   .toolbar button.active { background:#e9a045; color:#fff; }
-  .toolbar .zoom-label { color:rgba(255,255,255,0.7); font-size:13px; min-width:48px; text-align:center; flex-shrink:0; }
-  .toolbar .divider { width:1px; height:24px; background:rgba(255,255,255,0.15); margin:0 4px; flex-shrink:0; }
+  .toolbar .zoom-label { color:rgba(255,255,255,0.7); font-size:13px; min-width:44px; text-align:center; flex-shrink:0; }
+  .toolbar .divider { width:1px; height:22px; background:rgba(255,255,255,0.15); margin:0 2px; flex-shrink:0; }
+  .toolbar select { height:26px; border:none; border-radius:4px; background:rgba(255,255,255,0.15); color:#fff; font-size:12px; padding:0 2px; cursor:pointer; flex-shrink:0; }
 
   .song-list::-webkit-scrollbar { width:4px; }
   .song-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.2); border-radius:2px; }
+  .scroll-view::-webkit-scrollbar { width:0; height:0; }
 
   .video-list-panel { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:10001; align-items:center; justify-content:center; padding:20px; }
   .video-list-panel.open { display:flex; }
@@ -137,14 +127,13 @@
 
   .video-modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center; padding:20px; }
   .video-modal.open { display:flex; }
-  .video-modal-inner { width:100%; max-width:900px; background:#000; border-radius:10px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,0.6); position:relative; }
+  .video-modal-inner { width:100%; max-width:900px; background:#000; border-radius:10px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,0.6); }
   .video-modal-head { padding:14px 18px; background:#16213e; color:#fff; display:flex; justify-content:space-between; align-items:center; }
   .video-modal-head h3 { font-size:16px; font-weight:600; }
   .video-modal-close { width:30px; height:30px; border:none; border-radius:50%; background:rgba(255,255,255,0.15); color:#fff; font-size:18px; cursor:pointer; }
   .video-player-wrap { position:relative; width:100%; padding-top:56.25%; background:#000; }
   .video-player-wrap iframe { position:absolute; top:0; left:0; width:100%; height:100%; border:none; }
 
-  .update-hint { position:absolute; bottom:70px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.75); color:#fff; padding:8px 16px; border-radius:20px; font-size:13px; z-index:30; display:none; }
   #loadingMask { position:fixed; inset:0; background:#f5f5f5; z-index:2000; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; transition:opacity .3s; }
   #loadingMask.done { opacity:0; pointer-events:none; }
   .loader{ width:36px; height:36px; border:4px solid #e0e0e0; border-top-color:#e9a045; border-radius:50%; animation:spin .9s linear infinite; }
@@ -157,12 +146,11 @@
     .resizer { display:none; }
     .menu-btn { display:flex; align-items:center; justify-content:center; gap:5px; }
     .mobile-replay-btn { display:flex; align-items:center; justify-content:center; gap:3px; }
-    .content-wrapper { width:100%; }
-    .title-bar { padding:10px 44px 16px 170px; }
-    .title-bar .tb-song { font-size:17px; }
+    .title-bar { padding:24px 50px 24px 150px; }
+    .title-bar .tb-song { font-size:16px; }
     .title-bar .tb-info { font-size:11px; }
-    .toolbar { height:48px; padding:0 40px 0 8px; gap:6px; justify-content:flex-start; }
-    .toolbar button { height:32px; min-width:32px; padding:0 8px; font-size:12px; }
+    .toolbar { height:46px; padding:0 10px; gap:6px; justify-content:flex-start; }
+    .toolbar button { height:32px; padding:0 8px; font-size:12px; }
   }
 </style>
 </head>
@@ -183,7 +171,7 @@
   <div class="resizer" id="resizer"></div>
 
   <div class="content-wrapper">
-    <div class="content" id="viewArea">
+    <div class="content-area" id="contentArea">
       <button class="menu-btn" id="menuBtn">选歌 ♪</button>
       <button class="mobile-replay-btn" id="mobileReplayBtn">▶ 回放</button>
       <div class="title-bar" id="titleBar">
@@ -192,33 +180,32 @@
         <a class="download-btn" id="downloadBtn" href="" download>下载原版PDF</a>
         <button class="tb-toggle" id="btnHideTitle" title="隐藏歌名栏">▾</button>
       </div>
-      <div class="score-container" id="scoreContainer"></div>
+      <div class="scroll-view" id="scrollView">
+        <img class="score-img" id="scoreImg" alt="曲谱">
+      </div>
     </div>
     <div class="toolbar" id="toolbar">
-      <button id="btnZoomOut" title="缩小" style="font-size:18px;">−</button>
+      <button id="btnZoomOut" title="缩小">−</button>
       <span class="zoom-label" id="zoomLabel">100%</span>
-      <button id="btnZoomIn" title="放大" style="font-size:18px;">+</button>
+      <button id="btnZoomIn" title="放大">+</button>
       <div class="divider"></div>
-      <button id="btnFill" title="填满界面(I)">看谱</button>
-      <button id="btnAnnotate" title="标注(C)">标注</button>
-      <button id="btnCover" title="遮盖(K)">遮盖</button>
-      <button id="btnClear" title="清除全部">清除</button>
+      <button id="btnFill" title="适应宽度">看谱</button>
       <div class="divider"></div>
       <button id="btnAutoScroll" title="自动下滑" style="background:rgba(76,175,80,0.7);color:#fff;">▼ 下滑</button>
-      <select id="scrollSpeed" style="height:28px;border:none;border-radius:4px;background:rgba(255,255,255,0.15);color:#fff;font-size:12px;padding:0 4px;cursor:pointer;">
+      <select id="scrollSpeed">
         <option value="0.5" style="color:#000;">0.5x</option>
         <option value="1" selected style="color:#000;">1x</option>
         <option value="1.5" style="color:#000;">1.5x</option>
         <option value="2" style="color:#000;">2x</option>
       </select>
-      <button class="tb-toolbar-toggle" id="btnHideToolbar" title="隐藏工具栏">▾</button>
+      <div class="divider"></div>
+      <button id="btnShowTitleOnly" title="显示标题">标题</button>
     </div>
   </div>
 </div>
 
-<div class="loadingMask-set">
-  <div id="loadingMask"><div class="loader"></div><div id="loadingText">曲谱加载中…</div></div>
-</div>
+<div id="loadingMask"><div class="loader"></div><div id="loadingText">曲谱加载中…</div></div>
+
 <div class="video-list-panel" id="videoListPanel">
   <div class="video-list-inner">
     <div class="video-list-head"><h3>直播回放</h3><button class="video-modal-close" onclick="closeVideoList()">✕</button></div>
@@ -235,21 +222,15 @@
 </div>
 
 <script>
-  // ========== 曲谱数据（多页曲谱用 files 数组）==========
+  // ========== 曲谱数据（每首一张完整长图，已裁掉底部空白）==========
   var songs = [
     { singer: '羽如老师', date: '2026-10-20', name: '祝福祖国',
-      info: '清风 词 · 孟庆云 曲', pdf: 'score/zfgz.pdf', files: [
-        'score/zfgz_1.jpg','score/zfgz_2.jpg','score/zfgz_3.jpg','score/zfgz_4.jpg','score/zfgz_5.jpg',
-        'score/zfgz_6.jpg','score/zfgz_7.jpg','score/zfgz_8.jpg','score/zfgz_9.jpg','score/zfgz_10.jpg','score/zfgz_11.jpg','score/zfgz_12.jpg'
-      ]},
+      info: '清风 词 · 孟庆云 曲', img: 'score/zfgz_all.jpg', pdf: 'score/zfgz.pdf' },
     { singer: '羽如老师', date: '2026-10-13', name: '我爱你塞北的雪',
-      info: '王德 词 · 刘锡津 曲', pdf: 'score/sbdx.pdf', files: [
-        'score/sbdx_1.jpg','score/sbdx_2.jpg','score/sbdx_3.jpg','score/sbdx_4.jpg','score/sbdx_5.jpg',
-        'score/sbdx_6.jpg','score/sbdx_7.jpg'
-      ]}
+      info: '王德 词 · 刘锡津 曲', img: 'score/sbdx_all.jpg', pdf: 'score/sbdx.pdf' }
   ];
 
-  // ========== 直播回放（按时间排序，倒序最新在前）==========
+  // ========== 直播回放（按时间倒序，最新在前）==========
   var replays = [
     { name: '10月20日直播回放', date: '2026-10-20', bv: 'BV1MRnb6DEhP' },
     { name: '10月17日直播回放', date: '2026-10-17', bv: 'BV1URnb6DEgp' },
@@ -258,74 +239,15 @@
 
   var collapsedGroups = {};
   var searchKeyword = '';
-  var isMobile = window.innerWidth <= 768;
-
-  var scorePages = [], scoreImages = [], highlightLayers = [], bottomPads = [];
-  var undoStack = songs.map(function(){return [];});
-  var highlights = songs.map(function(){return [];});
-  var covers = songs.map(function(){return [];});
   var currentSongIndex = 0;
-  var currentScale = 1, panX = 0, panY = 0;
-  var isDragging = false, currentMode = 'pan';
-  var isDrawing = false, drawStartX, drawStartY, currentRect;
-  var dragStartX, dragStartY, dragPanStartX, dragPanStartY;
-  var MIN_SCALE=0.3, MAX_SCALE=8, ZOOM_STEP=0.2;
+  var currentScale = 1;
+  var MIN_SCALE=0.4, MAX_SCALE=6, ZOOM_STEP=0.15;
+  var isAutoScrolling=false;
 
-  var viewArea=document.getElementById('viewArea'), zoomLabel=document.getElementById('zoomLabel');
-  var scoreContainer=document.getElementById('scoreContainer');
-  var btnAnnotate=document.getElementById('btnAnnotate'), btnCover=document.getElementById('btnCover'), btnClear=document.getElementById('btnClear');
-  var container=document.getElementById('container'), resizer=document.getElementById('resizer');
-  var searchInput=document.getElementById('searchInput'), sidebar=document.getElementById('sidebar'), sidebarBackdrop=document.getElementById('sidebarBackdrop'), menuBtn=document.getElementById('menuBtn');
-  var btnAutoScroll=document.getElementById('btnAutoScroll'), scrollSpeedSelect=document.getElementById('scrollSpeed');
-  var isAutoScrolling=false, autoScrollTimer=null;
-
-  var songPageMap = [];
-  var _pageIdx = 0;
-  var _layoutDone = false;
-  songs.forEach(function(s, i) {
-    var fileList = s.files || [s.file];
-    var pageIndices = [];
-    fileList.forEach(function(f, fi) {
-      var page = document.createElement('div');
-      page.className = 'score-page';
-      page.dataset.songIdx = i; page.dataset.pageIdx = fi;
-      var img = document.createElement('img'); img.alt = s.name; img.src = f; img.loading = 'lazy';
-      var svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
-      svg.setAttribute('class','highlight-layer'); svg.setAttribute('id','hl'+_pageIdx);
-      var pad = document.createElement('div'); pad.className='bottom-pad';
-      img.onload = function(){
-        svg.setAttribute('width', img.naturalWidth);
-        svg.setAttribute('height', img.naturalHeight);
-        pad.style.height = Math.max(120, Math.round(img.naturalHeight*0.15))+'px';
-        // 仅「当前歌第一页」加载完成时统一布局一次并隐藏加载层
-        if(!_layoutDone && fi===0 && i===currentSongIndex){
-          _layoutDone=true;
-          setTimeout(function(){
-            applyLayout(currentSongIndex);
-            fitToView();
-            renderSongList();
-            hideLoading();
-          }, 60);
-        }
-      };
-      img.onerror = function(){ if(!_layoutDone && fi===0 && i===currentSongIndex){ _layoutDone=true; setTimeout(function(){ applyLayout(currentSongIndex); fitToView(); renderSongList(); hideLoading(); },10); } };
-      page.appendChild(img); page.appendChild(svg); page.appendChild(pad);
-      scoreContainer.appendChild(page);
-      scorePages.push(page); scoreImages.push(img); highlightLayers.push(svg); bottomPads.push(pad);
-      pageIndices.push(_pageIdx); _pageIdx++;
-    });
-    songPageMap.push(pageIndices);
-  });
-  function hideLoading(){ var m=document.getElementById('loadingMask'); if(m) m.classList.add('done'); }
-  // 兜底：网络再慢也不让加载层一直转
-  setTimeout(hideLoading, 2500);
-  // 若第一页已缓存导致 onload 已触发过，延时确保布局
-  setTimeout(function(){ if(!_layoutDone){ _layoutDone=true; applyLayout(currentSongIndex); fitToView(); renderSongList(); hideLoading(); } }, 300);
-
-  function _firstPage(){ return (songPageMap[currentSongIndex]||[currentSongIndex])[0]; }
-  function scoreImage(){ return scoreImages[_firstPage()]; }
-  function scoreWrapper(){ return scorePages[_firstPage()]; }
-  function highlightLayer(){ return highlightLayers[_firstPage()]; }
+  var sidebar=document.getElementById('sidebar'), sidebarBackdrop=document.getElementById('sidebarBackdrop');
+  var menuBtn=document.getElementById('menuBtn'), searchInput=document.getElementById('searchInput');
+  var contentArea=document.getElementById('contentArea'), scrollView=document.getElementById('scrollView');
+  var scoreImg=document.getElementById('scoreImg'), zoomLabel=document.getElementById('zoomLabel');
 
   document.getElementById('replayCount').textContent = replays.length;
 
@@ -358,165 +280,104 @@
         div.className='song-item'+(item.idx===currentSongIndex?' active':'');
         div.style.paddingLeft='calc(var(--sb-w)*0.12)';
         div.innerHTML='<span class="si-name">'+item.song.name+'</span>';
-        div.addEventListener('click',function(){ selectSong(item.idx); if(isMobile) closeSidebar(); });
+        div.addEventListener('click',function(){ selectSong(item.idx); if(isMobile()) closeSidebar(); });
         wrap.appendChild(div);
       });
       list.appendChild(wrap);
     });
   }
 
-  function applyLayout(idx){
-    var activePages=songPageMap[idx]||[idx];
-    scorePages.forEach(function(p,i){
-      var pos=activePages.indexOf(i);
-      if(pos!==-1){
-        p.classList.add('active');
-        if(activePages.length>1){
-          p.style.setProperty('position','relative','important'); p.style.setProperty('top','auto','important');
-          p.style.setProperty('left','auto','important'); p.style.setProperty('transform','none','important');
-          p.style.setProperty('transform-origin','top center','important'); p.style.setProperty('margin','0 auto 4px auto','important');
-        } else {
-          p.style.setProperty('position','','important'); p.style.setProperty('top','','important');
-          p.style.setProperty('left','','important'); p.style.setProperty('transform','','important');
-          p.style.setProperty('transform-origin','','important'); p.style.setProperty('margin','','important');
-        }
-      } else { p.classList.remove('active');
-        p.style.setProperty('position','','important'); p.style.setProperty('top','','important');
-        p.style.setProperty('left','','important'); p.style.setProperty('transform','','important');
-        p.style.setProperty('transform-origin','','important'); p.style.setProperty('margin','','important');
-      }
-    });
-    if(activePages.length>1){
-      scoreContainer.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;overflow-y:auto;justify-content:flex-start;-webkit-overflow-scrolling:touch;';
-    } else {
-      scoreContainer.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;';
-    }
-  }
+  function isMobile(){ return window.innerWidth<=768; }
 
   function selectSong(idx){
     if(idx===currentSongIndex) return;
-    if(isAutoScrolling){ stopAutoScroll(); }
+    stopAutoScroll();
     currentSongIndex=idx;
     var s=songs[idx];
-    applyLayout(idx);
     document.getElementById('tbSong').textContent=s.name;
     document.getElementById('tbInfo').textContent=s.info;
     var db=document.getElementById('downloadBtn');
     if(s.pdf){ db.href=s.pdf; db.classList.add('visible'); } else { db.classList.remove('visible'); }
-    renderSongList(); renderAll(); fitToView();
+    showLoading();
+    scoreImg.onload=function(){ hideLoading(); fitWidth(); };
+    scoreImg.onerror=function(){ hideLoading(); };
+    scoreImg.src=s.img;
+    scrollView.scrollTop=0; scrollView.scrollLeft=0;
+    currentScale=1;
+    zoomLabel.textContent='100%';
+    renderSongList();
   }
 
-  function openSidebar(){ sidebar.classList.add('open'); sidebarBackdrop.classList.add('show'); }
-  function closeSidebar(){ sidebar.classList.remove('open'); sidebarBackdrop.classList.remove('show'); }
-  menuBtn.addEventListener('click', openSidebar);
-  sidebarBackdrop.addEventListener('click', closeSidebar);
-  window.addEventListener('resize', function(){ isMobile=window.innerWidth<=768; if(!isMobile) closeSidebar(); setTimeout(fitToView,150); });
+  // 加载提示
+  function showLoading(){ document.getElementById('loadingMask').classList.remove('done'); }
+  function hideLoading(){ document.getElementById('loadingMask').classList.add('done'); }
+  setTimeout(hideLoading, 2500); // 兜底
 
-  // 平移 / 缩放
-  viewArea.addEventListener('mousedown', function(e){
-    if(currentMode!=='pan'||isDrawing) return;
-    isDragging=true; dragStartX=e.clientX; dragStartY=e.clientY;
-    dragPanStartX=panX; dragPanStartY=panY; viewArea.classList.add('dragging');
-  });
-  window.addEventListener('mousemove', function(e){
-    if(!isDragging) return;
-    panX=dragPanStartX+(e.clientX-dragStartX); panY=dragPanStartY+(e.clientY-dragStartY);
-    viewArea.style.transform='translate('+panX+'px,'+panY+'px)';
-  });
-  window.addEventListener('mouseup', function(){ isDragging=false; viewArea.classList.remove('dragging'); });
-  viewArea.addEventListener('wheel', function(e){
+  // 缩放：通过改变图片宽度实现（宽度自适应容器+scale）
+  function applyZoom(){
+    var imgW=scoreImg.naturalWidth || 800;
+    var availW=contentArea.clientWidth;
+    var baseFit=availW / imgW;   // 100%=适应宽度
+    var scaleVal=baseFit * currentScale;
+    scoreImg.style.width=(imgW*scaleVal)+'px';
+    scoreImg.style.height='auto';
+    zoomLabel.textContent=Math.round(currentScale*100)+'%';
+  }
+  function setZoom(z){ currentScale=Math.min(MAX_SCALE,Math.max(MIN_SCALE,z)); applyZoom(); }
+  document.getElementById('btnZoomOut').addEventListener('click',function(){ setZoom(currentScale-ZOOM_STEP); });
+  document.getElementById('btnZoomIn').addEventListener('click',function(){ setZoom(currentScale+ZOOM_STEP); });
+  function fitWidth(){ currentScale=1; zoomLabel.textContent='100%'; applyZoom(); }
+  document.getElementById('btnFill').addEventListener('click', fitWidth);
+
+  // 滚轮缩放
+  contentArea.addEventListener('wheel', function(e){
     e.preventDefault();
-    if(currentMode!=='pan') return;
     var delta = e.deltaY>0 ? -ZOOM_STEP : ZOOM_STEP;
     setZoom(currentScale+delta);
   }, {passive:false});
 
-  function setZoom(z){ currentScale=Math.min(MAX_SCALE,Math.max(MIN_SCALE,z)); zoomLabel.textContent=Math.round(currentScale*100)+'%'; renderAll(); }
-  document.getElementById('btnZoomOut').addEventListener('click',function(){ setZoom(currentScale-ZOOM_STEP); });
-  document.getElementById('btnZoomIn').addEventListener('click',function(){ setZoom(currentScale+ZOOM_STEP); });
-
-  function renderAll(){
-    if(!scoreImage()) return;
-    var w=scoreImage().naturalWidth||100, h=scoreImage().naturalHeight||100;
-    scoreWrapper().style.transform='translate(-50%,-50%) scale('+currentScale+')';
-    viewArea.style.transform='translate('+panX+'px,'+panY+'px)';
-  }
-  function fitToView(){
-    if(!scoreImage()) return;
-    var w=scoreImage().naturalWidth||100, h=scoreImage().naturalHeight||100;
-    var availW=viewArea.clientWidth, availH=viewArea.clientHeight-100;
-    var targetScale=Math.min(availW/w, availH/h, 1.2);
-    currentScale=targetScale; panX=0; panY=0; zoomLabel.textContent=Math.round(currentScale*100)+'%';
-    renderAll();
-  }
-  document.getElementById('btnFill').addEventListener('click', fitToView);
-
-  // 标注
-  btnAnnotate.addEventListener('click', function(){
-    currentMode = currentMode==='annotate' ? 'pan':'annotate';
-    btnAnnotate.classList.toggle('active', currentMode==='annotate');
-    viewArea.classList.toggle('annotate', currentMode==='annotate');
-    if(currentMode==='annotate'){ currentMode='annotate'; }
-  });
-  btnCover.addEventListener('click', function(){
-    currentMode = currentMode==='cover' ? 'pan':'cover';
-    btnCover.classList.toggle('active', currentMode==='cover');
-    viewArea.classList.toggle('cover', currentMode==='cover');
-  });
-
-  // 绘制（标注黄框 / 遮盖白块）
-  viewArea.addEventListener('mousedown', function(e){
-    if(currentMode==='annotate'||currentMode==='cover'){
-      isDrawing=true; drawStartX=e.offsetX; drawStartY=e.offsetY;
-      var svg=highlightLayer(); svg.setAttribute('class','highlight-layer interactive');
-      var rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
-      rect.setAttribute('x',drawStartX); rect.setAttribute('y',drawStartY);
-      rect.setAttribute('width',0); rect.setAttribute('height',0);
-      rect.setAttribute('class', currentMode==='cover'?'cover-rect':'highlight-rect drawing');
-      svg.appendChild(rect); currentRect=rect;
-    }
-  });
-  viewArea.addEventListener('mousemove', function(e){
-    if(!isDrawing||!currentRect) return;
-    var x=Math.min(drawStartX,e.offsetX), y=Math.min(drawStartY,e.offsetY);
-    var w=Math.abs(e.offsetX-drawStartX), h=Math.abs(e.offsetY-drawStartY);
-    currentRect.setAttribute('x',x); currentRect.setAttribute('y',y);
-    currentRect.setAttribute('width',w); currentRect.setAttribute('height',h);
-  });
-  window.addEventListener('mouseup', function(){
-    if(!isDrawing) return;
-    isDrawing=false; currentRect=null;
-    var svg=highlightLayer(); svg.setAttribute('class','highlight-layer');
-  });
-
-  btnClear.addEventListener('click', function(){
-    highlightLayer().innerHTML='';
-    highlights[currentSongIndex]=[]; covers[currentSongIndex]=[];
-  });
+  window.addEventListener('resize', function(){ setTimeout(function(){ fitWidth(); },150); });
 
   // 自动下滑
-  btnAutoScroll.addEventListener('click', function(){
-    if(isAutoScrolling){ stopAutoScroll(); btnAutoScroll.textContent='▼ 下滑'; btnAutoScroll.style.background='rgba(76,175,80,0.7)'; }
-    else { isAutoScrolling=true; btnAutoScroll.textContent='■ 停止'; btnAutoScroll.style.background='#e9a045';
-      var speed=parseFloat(scrollSpeedSelect.value);
-      scoreContainer.scrollTop=0;
-      var start=null;
-      var step=function(ts){
+  document.getElementById('btnAutoScroll').addEventListener('click', function(){
+    if(isAutoScrolling){
+      stopAutoScroll();
+      document.getElementById('btnAutoScroll').textContent='▼ 下滑';
+      document.getElementById('btnAutoScroll').style.background='rgba(76,175,80,0.7)';
+    } else {
+      isAutoScrolling=true;
+      document.getElementById('btnAutoScroll').textContent='■ 停止';
+      document.getElementById('btnAutoScroll').style.background='#e9a045';
+      var speed=parseFloat(document.getElementById('scrollSpeed').value);
+      scrollView.scrollTop=0;
+      var step=function(){
         if(!isAutoScrolling) return;
-        if(!start) start=ts;
-        scoreContainer.scrollTop += speed*0.35;
-        if(scoreContainer.scrollTop + scoreContainer.clientHeight < scoreContainer.scrollHeight) requestAnimationFrame(step);
-        else { stopAutoScroll(); btnAutoScroll.textContent='▼ 下滑'; btnAutoScroll.style.background='rgba(76,175,80,0.7)'; }
+        scrollView.scrollTop += speed*0.5;
+        if(scrollView.scrollTop + scrollView.clientHeight < scrollView.scrollHeight) requestAnimationFrame(step);
+        else { stopAutoScroll(); document.getElementById('btnAutoScroll').textContent='▼ 下滑'; document.getElementById('btnAutoScroll').style.background='rgba(76,175,80,0.7)'; }
       };
       requestAnimationFrame(step);
     }
   });
   function stopAutoScroll(){ isAutoScrolling=false; }
 
-  // 标题栏隐藏
-  document.getElementById('btnHideTitle').addEventListener('click', function(){
-    document.getElementById('titleBar').classList.add('hidden');
-    document.getElementById('btnShowTitle').classList.add('visible');
+  // 标题栏
+  document.getElementById('btnHideTitle').addEventListener('click', function(){ document.getElementById('titleBar').classList.add('hidden'); });
+  document.getElementById('btnShowTitleOnly').addEventListener('click', function(){ document.getElementById('titleBar').classList.toggle('hidden'); });
+
+  // 侧边栏
+  function openSidebar(){ sidebar.classList.add('open'); sidebarBackdrop.classList.add('show'); }
+  function closeSidebar(){ sidebar.classList.remove('open'); sidebarBackdrop.classList.remove('show'); }
+  menuBtn.addEventListener('click', openSidebar);
+  sidebarBackdrop.addEventListener('click', closeSidebar);
+  searchInput.addEventListener('input', function(){ searchKeyword=this.value; renderSongList(); });
+
+  // 目录栏拖拽改宽
+  var resizer=document.getElementById('resizer'), container=document.getElementById('container');
+  resizer.addEventListener('mousedown', function(e){ e.preventDefault(); document.body.style.cursor='col-resize'; var sx=e.clientX, sw=sidebar.offsetWidth;
+    var mm=function(ev){ var w=sw+(ev.clientX-sx); w=Math.max(140,Math.min(360,w)); container.style.setProperty('--sb-w',w+'px'); };
+    var mu=function(){ document.body.style.cursor=''; window.removeEventListener('mousemove',mm); window.removeEventListener('mouseup',mu); };
+    window.addEventListener('mousemove',mm); window.addEventListener('mouseup',mu);
   });
 
   // ========== 直播回放 ==========
@@ -540,10 +401,15 @@
   }
   function closeVideo(){ document.getElementById('videoModal').classList.remove('open'); document.getElementById('videoFrame').src=''; }
 
-  // 初始（布局在所有曲谱图片加载完后统一执行，见 img.onload）
+  // 初始
+  document.getElementById('tbSong').textContent=songs[0].name;
+  document.getElementById('tbInfo').textContent=songs[0].info;
+  document.getElementById('downloadBtn').href=songs[0].pdf;
+  document.getElementById('downloadBtn').classList.add('visible');
   renderSongList();
-  // 兜底：若图片已被浏览器缓存导致 onload 未触发，延时布局一次
-  setTimeout(function(){ if(!_layoutDone){ _layoutDone=true; applyLayout(currentSongIndex); fitToView(); renderSongList(); } }, 800);
+  scoreImg.onload=function(){ hideLoading(); fitWidth(); };
+  scoreImg.onerror=function(){ hideLoading(); };
+  scoreImg.src=songs[0].img;
 </script>
 </body>
 </html>
