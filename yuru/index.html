@@ -144,6 +144,13 @@
   .video-player-wrap { position:relative; width:100%; padding-top:56.25%; background:#000; }
   .video-player-wrap iframe { position:absolute; top:0; left:0; width:100%; height:100%; border:none; }
 
+  .update-hint { position:absolute; bottom:70px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.75); color:#fff; padding:8px 16px; border-radius:20px; font-size:13px; z-index:30; display:none; }
+  #loadingMask { position:fixed; inset:0; background:#f5f5f5; z-index:2000; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; transition:opacity .3s; }
+  #loadingMask.done { opacity:0; pointer-events:none; }
+  .loader{ width:36px; height:36px; border:4px solid #e0e0e0; border-top-color:#e9a045; border-radius:50%; animation:spin .9s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg);} }
+  #loadingText{ color:#666; font-size:14px; }
+
   @media (max-width:768px) {
     .sidebar { position:fixed; top:0; left:0; bottom:0; width:75vw; max-width:300px; min-width:0; --sb-w:75vw; transform:translateX(-100%); transition:transform .25s; z-index:200; }
     .sidebar.open { transform:translateX(0); }
@@ -209,6 +216,9 @@
   </div>
 </div>
 
+<div class="loadingMask-set">
+  <div id="loadingMask"><div class="loader"></div><div id="loadingText">曲谱加载中…</div></div>
+</div>
 <div class="video-list-panel" id="videoListPanel">
   <div class="video-list-inner">
     <div class="video-list-head"><h3>直播回放</h3><button class="video-modal-close" onclick="closeVideoList()">✕</button></div>
@@ -229,13 +239,13 @@
   var songs = [
     { singer: '羽如老师', date: '2026-10-20', name: '祝福祖国',
       info: '清风 词 · 孟庆云 曲', pdf: 'score/zfgz.pdf', files: [
-        'score/zfgz_1.png','score/zfgz_2.png','score/zfgz_3.png','score/zfgz_4.png','score/zfgz_5.png',
-        'score/zfgz_6.png','score/zfgz_7.png','score/zfgz_8.png','score/zfgz_9.png','score/zfgz_10.png','score/zfgz_11.png'
+        'score/zfgz_1.jpg','score/zfgz_2.jpg','score/zfgz_3.jpg','score/zfgz_4.jpg','score/zfgz_5.jpg',
+        'score/zfgz_6.jpg','score/zfgz_7.jpg','score/zfgz_8.jpg','score/zfgz_9.jpg','score/zfgz_10.jpg','score/zfgz_11.jpg','score/zfgz_12.jpg'
       ]},
     { singer: '羽如老师', date: '2026-10-13', name: '我爱你塞北的雪',
       info: '王德 词 · 刘锡津 曲', pdf: 'score/sbdx.pdf', files: [
-        'score/sbdx_1.png','score/sbdx_2.png','score/sbdx_3.png','score/sbdx_4.png','score/sbdx_5.png',
-        'score/sbdx_6.png','score/sbdx_7.png','score/sbdx_8.png','score/sbdx_9.png','score/sbdx_10.png','score/sbdx_11.png'
+        'score/sbdx_1.jpg','score/sbdx_2.jpg','score/sbdx_3.jpg','score/sbdx_4.jpg','score/sbdx_5.jpg',
+        'score/sbdx_6.jpg','score/sbdx_7.jpg'
       ]}
   ];
 
@@ -271,16 +281,15 @@
 
   var songPageMap = [];
   var _pageIdx = 0;
-  var _totalImgs = 0, _loadedImgs = 0, _layoutDone = false;
+  var _layoutDone = false;
   songs.forEach(function(s, i) {
     var fileList = s.files || [s.file];
-    _totalImgs += fileList.length;
     var pageIndices = [];
     fileList.forEach(function(f, fi) {
       var page = document.createElement('div');
       page.className = 'score-page';
       page.dataset.songIdx = i; page.dataset.pageIdx = fi;
-      var img = document.createElement('img'); img.alt = s.name; img.src = f;
+      var img = document.createElement('img'); img.alt = s.name; img.src = f; img.loading = 'lazy';
       var svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
       svg.setAttribute('class','highlight-layer'); svg.setAttribute('id','hl'+_pageIdx);
       var pad = document.createElement('div'); pad.className='bottom-pad';
@@ -288,16 +297,18 @@
         svg.setAttribute('width', img.naturalWidth);
         svg.setAttribute('height', img.naturalHeight);
         pad.style.height = Math.max(120, Math.round(img.naturalHeight*0.15))+'px';
-        _loadedImgs++;
-        if(!_layoutDone && _loadedImgs>=_totalImgs){
+        // 仅「当前歌第一页」加载完成时统一布局一次并隐藏加载层
+        if(!_layoutDone && fi===0 && i===currentSongIndex){
           _layoutDone=true;
-          // 全部加载完成，统一布局一次（避免反复缩放闪烁）
-          applyLayout(currentSongIndex);
-          fitToView();
-          renderSongList();
+          setTimeout(function(){
+            applyLayout(currentSongIndex);
+            fitToView();
+            renderSongList();
+            hideLoading();
+          }, 60);
         }
       };
-      img.onerror = function(){ _loadedImgs++; if(!_layoutDone && _loadedImgs>=_totalImgs){ _layoutDone=true; applyLayout(currentSongIndex); fitToView(); renderSongList(); } };
+      img.onerror = function(){ if(!_layoutDone && fi===0 && i===currentSongIndex){ _layoutDone=true; setTimeout(function(){ applyLayout(currentSongIndex); fitToView(); renderSongList(); hideLoading(); },10); } };
       page.appendChild(img); page.appendChild(svg); page.appendChild(pad);
       scoreContainer.appendChild(page);
       scorePages.push(page); scoreImages.push(img); highlightLayers.push(svg); bottomPads.push(pad);
@@ -305,6 +316,11 @@
     });
     songPageMap.push(pageIndices);
   });
+  function hideLoading(){ var m=document.getElementById('loadingMask'); if(m) m.classList.add('done'); }
+  // 兜底：网络再慢也不让加载层一直转
+  setTimeout(hideLoading, 2500);
+  // 若第一页已缓存导致 onload 已触发过，延时确保布局
+  setTimeout(function(){ if(!_layoutDone){ _layoutDone=true; applyLayout(currentSongIndex); fitToView(); renderSongList(); hideLoading(); } }, 300);
 
   function _firstPage(){ return (songPageMap[currentSongIndex]||[currentSongIndex])[0]; }
   function scoreImage(){ return scoreImages[_firstPage()]; }
