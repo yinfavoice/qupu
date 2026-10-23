@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>羽如老师 · 曲谱与直播回放</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; font-family: "Microsoft YaHei", "SimHei", sans-serif; background: #f5f5f5; user-select: none; -webkit-user-select: none; }
+  .container { display: flex; width: 100vw; height: 100vh; height: 100dvh; --sb-w: 200px; position: relative; }
+
+  /* 左侧目录 */
+  .sidebar {
+    width: var(--sb-w); min-width: 140px; max-width: 360px;
+    height: 100vh; height: 100dvh; flex-shrink: 0;
+    background: linear-gradient(180deg, #1a2a4a 0%, #16213e 50%, #0f3460 100%);
+    color: #fff; display: flex; flex-direction: column; overflow: hidden;
+    z-index: 100; position: relative;
+  }
+  .sidebar-header {
+    padding: calc(var(--sb-w) * 0.12) calc(var(--sb-w) * 0.08) calc(var(--sb-w) * 0.07);
+    text-align: center; flex-shrink: 0;
+  }
+  .sidebar-header h2 {
+    font-size: calc(var(--sb-w) * 0.075); font-weight: 700; color: #e9a045;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 1px;
+  }
+  .sidebar-header p { font-size: calc(var(--sb-w) * 0.07); color: rgba(255,255,255,0.55); margin-top: 4px; letter-spacing: 1px; }
+
+  .search-box { padding: 0 calc(var(--sb-w) * 0.08) calc(var(--sb-w) * 0.05); flex-shrink: 0; }
+  .search-box input {
+    width: 100%; height: 30px; border: none; border-radius: 6px;
+    background: rgba(255,255,255,0.1); color: #fff; padding: 0 10px;
+    font-size: calc(var(--sb-w) * 0.08); outline: none;
+  }
+  .search-box input::placeholder { color: rgba(255,255,255,0.35); }
+  .search-box input:focus { background: rgba(255,255,255,0.18); }
+
+  .song-list { flex: 1; overflow-y: auto; padding: 4px 0; -webkit-overflow-scrolling: touch; }
+
+  .singer-header {
+    padding: calc(var(--sb-w)*0.06) calc(var(--sb-w)*0.08) calc(var(--sb-w)*0.03) calc(var(--sb-w)*0.1);
+    font-size: calc(var(--sb-w)*0.1); font-weight: 700; color: #e9a045;
+    display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;
+  }
+  .singer-header .arrow { display:inline-block; width:0; height:0; border-left:5px solid rgba(255,255,255,0.6); border-top:4px solid transparent; border-bottom:4px solid transparent; transition:transform .2s; }
+  .singer-header.collapsed .arrow { transform: rotate(-90deg); }
+  .singer-header .singer-count { font-size: calc(var(--sb-w)*0.065); color: rgba(255,255,255,0.35); margin-left:auto; font-weight:400; }
+  .singer-songs { overflow:hidden; transition:max-height .25s ease; }
+  .singer-songs.collapsed { max-height:0 !important; }
+
+  .song-item {
+    padding: calc(var(--sb-w)*0.05) calc(var(--sb-w)*0.08) calc(var(--sb-w)*0.05) calc(var(--sb-w)*0.14);
+    cursor:pointer; transition:all .2s; border-left:3px solid transparent;
+    display:flex; align-items:baseline; gap: calc(var(--sb-w)*0.04);
+  }
+  .song-item:hover { background: rgba(255,255,255,0.08); }
+  .song-item.active { background: rgba(233,160,69,0.18); border-left-color:#e9a045; }
+  .song-item .si-name { font-size: calc(var(--sb-w)*0.09); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .song-item.active .si-name { color:#fff; }
+  .no-result { padding:20px; text-align:center; color:rgba(255,255,255,0.3); font-size:12px; }
+
+  .resizer { width:5px; flex-shrink:0; cursor:col-resize; background:rgba(255,255,255,0.08); transition:background .2s; z-index:20; }
+  .resizer:hover, .resizer.dragging { background:#e9a045; }
+
+  /* 直播回放 侧边栏底部 */
+  .replay-section { flex-shrink:0; padding:8px; border-top:1px solid rgba(255,255,255,0.15); background:rgba(0,0,0,0.2); }
+  .replay-btn {
+    width:100%; padding:10px 8px; border:none; border-radius:6px;
+    background: linear-gradient(135deg,#e9a045 0%, #c8762f 100%); color:#fff;
+    font-size: calc(var(--sb-w)*0.085); font-weight:600; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 2px 8px rgba(233,160,69,0.3);
+  }
+  .replay-btn:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(233,160,69,0.4); }
+  .replay-btn:active { transform:translateY(0); background:#c8762f; }
+
+  .content-wrapper { flex:1; display:flex; flex-direction:column; height:100vh; height:100dvh; position:relative; background:#e8e8e8; min-width:0; }
+  .content { flex:1; overflow:hidden; position:relative; cursor:grab; }
+  .content.dragging { cursor:grabbing; }
+
+  .menu-btn { display:none; position:absolute; top:8px; left:8px; z-index:21; height:36px; padding:0 16px; border:none; border-radius:18px; background:rgba(0,0,0,0.6); color:#fff; font-size:15px; font-weight:600; cursor:pointer; }
+  .mobile-replay-btn { display:none; position:absolute; top:8px; left:92px; z-index:21; height:36px; padding:0 10px; border:none; border-radius:18px; background:rgba(233,160,69,0.9); color:#fff; font-size:13px; font-weight:600; cursor:pointer; }
+  .sidebar-backdrop { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.45); z-index:99; }
+  .sidebar-backdrop.show { display:block; }
+
+  .title-bar {
+    position:absolute; top:0; left:0; right:0; z-index:20;
+    background: linear-gradient(180deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.5) 70%, rgba(0,0,0,0) 100%);
+    padding:14px 50px 20px 24px; pointer-events:none;
+    display:flex; align-items:baseline; gap:16px; flex-wrap:wrap; transition:opacity .25s, transform .25s;
+  }
+  .title-bar.hidden { opacity:0; transform:translateY(-100%); pointer-events:none; }
+  .title-bar .tb-song { font-size:22px; font-weight:700; color:#fff; letter-spacing:2px; text-shadow:0 1px 4px rgba(0,0,0,0.5); }
+  .title-bar .tb-info { font-size:13px; color:rgba(255,255,255,0.75); text-shadow:0 1px 3px rgba(0,0,0,0.5); }
+  .tb-toggle { pointer-events:auto; position:absolute; right:12px; top:10px; width:28px; height:28px; border:none; border-radius:50%; background:rgba(255,255,255,0.15); color:rgba(255,255,255,0.8); font-size:13px; cursor:pointer; }
+  .show-title-btn { position:absolute; top:8px; right:8px; z-index:19; height:30px; padding:0 14px; border:none; border-radius:15px; background:rgba(0,0,0,0.55); color:rgba(255,255,255,0.85); font-size:12px; cursor:pointer; display:none; align-items:center; }
+
+  .score-container { position:absolute; top:0; left:0; width:100%; height:100%; }
+  .score-page { position:absolute; top:50%; left:50%; background:#fff; transform:translate(-50%,-50%) scale(1); transform-origin:center center; transition:transform .15s ease-out; box-shadow:0 2px 20px rgba(0,0,0,0.15); display:none; }
+  .score-page.active { display:block; }
+  .score-page img { display:block; max-width:none; max-height:none; pointer-events:none; }
+  .highlight-layer { position:absolute; top:0; left:0; pointer-events:none; }
+  .highlight-layer.interactive { pointer-events:auto; }
+  .highlight-rect { fill:rgba(255,220,50,0.45); stroke:rgba(255,180,0,0.6); stroke-width:1; }
+  .cover-rect { fill:#fff; stroke:none; }
+  .bottom-pad { width:100%; background:#fff; }
+
+  .toolbar {
+    height:52px; flex-shrink:0; background:rgba(20,20,20,0.95); border-top:1px solid rgba(255,255,255,0.1);
+    display:flex; align-items:center; justify-content:center; padding:0 50px 0 20px; gap:10px; position:relative; transition:transform .25s, opacity .25s; overflow-x:auto;
+  }
+  .toolbar::-webkit-scrollbar { display:none; }
+  .toolbar.hidden { transform:translateY(100%); opacity:0; pointer-events:none; position:absolute; bottom:0; left:0; right:0; }
+  .tb-toolbar-toggle { position:absolute; right:12px; top:50%; transform:translateY(-50%); width:28px; height:28px; border:none; border-radius:50%; background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.7); font-size:13px; cursor:pointer; }
+  .toolbar button { height:36px; min-width:36px; padding:0 10px; border:none; border-radius:6px; background:rgba(255,255,255,0.1); color:#fff; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; white-space:nowrap; flex-shrink:0; }
+  .toolbar button:active { background:rgba(233,160,69,0.4); }
+  .toolbar button.active { background:#e9a045; color:#fff; }
+  .toolbar .zoom-label { color:rgba(255,255,255,0.7); font-size:13px; min-width:48px; text-align:center; flex-shrink:0; }
+  .toolbar .divider { width:1px; height:24px; background:rgba(255,255,255,0.15); margin:0 4px; flex-shrink:0; }
+
+  .song-list::-webkit-scrollbar { width:4px; }
+  .song-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.2); border-radius:2px; }
+
+  .video-list-panel { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:10001; align-items:center; justify-content:center; padding:20px; }
+  .video-list-panel.open { display:flex; }
+  .video-list-inner { width:100%; max-width:500px; max-height:80vh; background:#16213e; border-radius:10px; overflow:hidden; display:flex; flex-direction:column; }
+  .video-list-head { padding:14px 18px; background:#0f3460; color:#fff; display:flex; justify-content:space-between; align-items:center; }
+  .video-list-head h3 { font-size:16px; font-weight:600; }
+  .video-list-tip { padding:12px 16px; background:rgba(233,160,69,0.15); color:#ffc98a; font-size:15px; font-weight:600; text-align:center; border-bottom:1px solid rgba(255,255,255,0.08); }
+  .video-list-scroll { flex:1; overflow-y:auto; padding:8px; }
+  .video-item { padding:12px 14px; margin:4px 0; border-radius:8px; background:rgba(255,255,255,0.05); cursor:pointer; transition:background .15s; }
+  .video-item:hover { background:rgba(233,160,69,0.2); }
+  .video-item .vi-name { color:#fff; font-size:14px; font-weight:600; }
+  .video-item .vi-meta { color:rgba(255,255,255,0.5); font-size:12px; margin-top:4px; }
+
+  .video-modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center; padding:20px; }
+  .video-modal.open { display:flex; }
+  .video-modal-inner { width:100%; max-width:900px; background:#000; border-radius:10px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,0.6); position:relative; }
+  .video-modal-head { padding:14px 18px; background:#16213e; color:#fff; display:flex; justify-content:space-between; align-items:center; }
+  .video-modal-head h3 { font-size:16px; font-weight:600; }
+  .video-modal-close { width:30px; height:30px; border:none; border-radius:50%; background:rgba(255,255,255,0.15); color:#fff; font-size:18px; cursor:pointer; }
+  .video-player-wrap { position:relative; width:100%; padding-top:56.25%; background:#000; }
+  .video-player-wrap iframe { position:absolute; top:0; left:0; width:100%; height:100%; border:none; }
+
+  @media (max-width:768px) {
+    .sidebar { position:fixed; top:0; left:0; bottom:0; width:75vw; max-width:300px; min-width:0; --sb-w:75vw; transform:translateX(-100%); transition:transform .25s; z-index:200; }
+    .sidebar.open { transform:translateX(0); }
+    .resizer { display:none; }
+    .menu-btn { display:flex; align-items:center; justify-content:center; gap:5px; }
+    .mobile-replay-btn { display:flex; align-items:center; justify-content:center; gap:3px; }
+    .content-wrapper { width:100%; }
+    .title-bar { padding:10px 44px 16px 170px; }
+    .title-bar .tb-song { font-size:17px; }
+    .title-bar .tb-info { font-size:11px; }
+    .toolbar { height:48px; padding:0 40px 0 8px; gap:6px; justify-content:flex-start; }
+    .toolbar button { height:32px; min-width:32px; padding:0 8px; font-size:12px; }
+  }
+</style>
+</head>
+<body>
+<div class="container" id="container">
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2>羽如老师 · 声乐课堂</h2>
+      <p>曲谱与直播回放</p>
+    </div>
+    <div class="search-box"><input type="text" id="searchInput" placeholder="搜索歌名 / 日期"></div>
+    <div class="song-list" id="songList"></div>
+    <div class="replay-section">
+      <button class="replay-btn" id="replayBtn"><span style="font-size:1.1em;">▶</span><span>直播回放 (<span id="replayCount">0</span>)</span></button>
+    </div>
+  </div>
+  <div class="resizer" id="resizer"></div>
+
+  <div class="content-wrapper">
+    <div class="content" id="viewArea">
+      <button class="menu-btn" id="menuBtn">选歌 ♪</button>
+      <button class="mobile-replay-btn" id="mobileReplayBtn">▶ 回放</button>
+      <div class="title-bar" id="titleBar">
+        <span class="tb-song" id="tbSong">—</span>
+        <span class="tb-info" id="tbInfo"></span>
+        <button class="tb-toggle" id="btnHideTitle" title="隐藏歌名栏">▾</button>
+      </div>
+      <div class="score-container" id="scoreContainer"></div>
+    </div>
+    <div class="toolbar" id="toolbar">
+      <button id="btnZoomOut" title="缩小" style="font-size:18px;">−</button>
+      <span class="zoom-label" id="zoomLabel">100%</span>
+      <button id="btnZoomIn" title="放大" style="font-size:18px;">+</button>
+      <div class="divider"></div>
+      <button id="btnFill" title="填满界面(I)">看谱</button>
+      <button id="btnAnnotate" title="标注(C)">标注</button>
+      <button id="btnCover" title="遮盖(K)">遮盖</button>
+      <button id="btnClear" title="清除全部">清除</button>
+      <div class="divider"></div>
+      <button id="btnAutoScroll" title="自动下滑" style="background:rgba(76,175,80,0.7);color:#fff;">▼ 下滑</button>
+      <select id="scrollSpeed" style="height:28px;border:none;border-radius:4px;background:rgba(255,255,255,0.15);color:#fff;font-size:12px;padding:0 4px;cursor:pointer;">
+        <option value="0.5" style="color:#000;">0.5x</option>
+        <option value="1" selected style="color:#000;">1x</option>
+        <option value="1.5" style="color:#000;">1.5x</option>
+        <option value="2" style="color:#000;">2x</option>
+      </select>
+      <button class="tb-toolbar-toggle" id="btnHideToolbar" title="隐藏工具栏">▾</button>
+    </div>
+  </div>
+</div>
+
+<div class="video-list-panel" id="videoListPanel">
+  <div class="video-list-inner">
+    <div class="video-list-head"><h3>直播回放</h3><button class="video-modal-close" onclick="closeVideoList()">✕</button></div>
+    <div class="video-list-tip">👆 点击下面的回放即可播放</div>
+    <div class="video-list-scroll" id="videoListScroll"></div>
+  </div>
+</div>
+
+<div class="video-modal" id="videoModal">
+  <div class="video-modal-inner">
+    <div class="video-modal-head"><h3 id="videoTitle">视频播放</h3><button class="video-modal-close" onclick="closeVideo()">✕</button></div>
+    <div class="video-player-wrap"><iframe id="videoFrame" src="" allowfullscreen="true" allow="autoplay; encrypted-media"></iframe></div>
+  </div>
+</div>
+
+<script>
+  // ========== 曲谱数据（多页曲谱用 files 数组）==========
+  var songs = [
+    { singer: '羽如老师', date: '2026-10-20', name: '祝福祖国',
+      info: '清风 词 · 孟庆云 曲', files: [
+        'score/zfgz_1.png','score/zfgz_2.png','score/zfgz_3.png','score/zfgz_4.png','score/zfgz_5.png',
+        'score/zfgz_6.png','score/zfgz_7.png','score/zfgz_8.png','score/zfgz_9.png','score/zfgz_10.png','score/zfgz_11.png'
+      ]},
+    { singer: '羽如老师', date: '2026-10-13', name: '我爱你塞北的雪',
+      info: '王德 词 · 刘锡津 曲', files: [
+        'score/sbdx_1.png','score/sbdx_2.png','score/sbdx_3.png','score/sbdx_4.png','score/sbdx_5.png',
+        'score/sbdx_6.png','score/sbdx_7.png','score/sbdx_8.png','score/sbdx_9.png','score/sbdx_10.png','score/sbdx_11.png'
+      ]}
+  ];
+
+  // ========== 直播回放（按时间排序，倒序最新在前）==========
+  var replays = [
+    { name: '10月20日直播回放', date: '2026-10-20', bv: 'BV1MRnb6DEhP' },
+    { name: '10月13日直播回放', date: '2026-10-13', bv: 'BV1URnb6DEgp' }
+  ];
+
+  var collapsedGroups = {};
+  var searchKeyword = '';
+  var isMobile = window.innerWidth <= 768;
+
+  var scorePages = [], scoreImages = [], highlightLayers = [], bottomPads = [];
+  var undoStack = songs.map(function(){return [];});
+  var highlights = songs.map(function(){return [];});
+  var covers = songs.map(function(){return [];});
+  var currentSongIndex = 0;
+  var currentScale = 1, panX = 0, panY = 0;
+  var isDragging = false, currentMode = 'pan';
+  var isDrawing = false, drawStartX, drawStartY, currentRect;
+  var dragStartX, dragStartY, dragPanStartX, dragPanStartY;
+  var MIN_SCALE=0.3, MAX_SCALE=8, ZOOM_STEP=0.2;
+
+  var viewArea=document.getElementById('viewArea'), zoomLabel=document.getElementById('zoomLabel');
+  var scoreContainer=document.getElementById('scoreContainer');
+  var btnAnnotate=document.getElementById('btnAnnotate'), btnCover=document.getElementById('btnCover'), btnClear=document.getElementById('btnClear');
+  var container=document.getElementById('container'), resizer=document.getElementById('resizer');
+  var searchInput=document.getElementById('searchInput'), sidebar=document.getElementById('sidebar'), sidebarBackdrop=document.getElementById('sidebarBackdrop'), menuBtn=document.getElementById('menuBtn');
+  var btnAutoScroll=document.getElementById('btnAutoScroll'), scrollSpeedSelect=document.getElementById('scrollSpeed');
+  var isAutoScrolling=false, autoScrollTimer=null;
+
+  var songPageMap = [];
+  var _pageIdx = 0;
+  songs.forEach(function(s, i) {
+    var fileList = s.files || [s.file];
+    var pageIndices = [];
+    fileList.forEach(function(f, fi) {
+      var page = document.createElement('div');
+      page.className = 'score-page' + (_pageIdx === 0 ? ' active' : '');
+      page.dataset.songIdx = i; page.dataset.pageIdx = fi;
+      var img = document.createElement('img'); img.alt = s.name; img.src = f;
+      var svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+      svg.setAttribute('class','highlight-layer'); svg.setAttribute('id','hl'+_pageIdx);
+      var pad = document.createElement('div'); pad.className='bottom-pad';
+      img.onload = function(){
+        svg.setAttribute('width', img.naturalWidth);
+        svg.setAttribute('height', img.naturalHeight);
+        pad.style.height = Math.max(120, Math.round(img.naturalHeight*0.15))+'px';
+        if (i === currentSongIndex) { renderAll(); fitToView(); }
+      };
+      page.appendChild(img); page.appendChild(svg); page.appendChild(pad);
+      scoreContainer.appendChild(page);
+      scorePages.push(page); scoreImages.push(img); highlightLayers.push(svg); bottomPads.push(pad);
+      pageIndices.push(_pageIdx); _pageIdx++;
+    });
+    songPageMap.push(pageIndices);
+  });
+
+  function _firstPage(){ return (songPageMap[currentSongIndex]||[currentSongIndex])[0]; }
+  function scoreImage(){ return scoreImages[_firstPage()]; }
+  function scoreWrapper(){ return scorePages[_firstPage()]; }
+  function highlightLayer(){ return highlightLayers[_firstPage()]; }
+
+  document.getElementById('replayCount').textContent = replays.length;
+
+  function renderSongList(){
+    var list=document.getElementById('songList'); list.innerHTML='';
+    var kw=searchKeyword.trim().toLowerCase();
+    var dateGroups={}, dateOrder=[];
+    songs.forEach(function(s,i){
+      if(kw){ var hay=(s.name+' '+s.info+' '+s.date).toLowerCase(); if(hay.indexOf(kw)===-1) return; }
+      if(!dateGroups[s.date]){ dateGroups[s.date]=[]; dateOrder.push(s.date); }
+      dateGroups[s.date].push({idx:i,song:s});
+    });
+    dateOrder.sort().reverse();
+    if(!dateOrder.length){ list.innerHTML='<div class="no-result">没有找到匹配的曲谱</div>'; return; }
+    dateOrder.forEach(function(date){
+      var items=dateGroups[date];
+      var dp=date.split('-'); var dateLabel=parseInt(dp[1])+'月'+parseInt(dp[2])+'日';
+      var dateKey='date_'+date;
+      var collapsed=collapsedGroups[dateKey]&&!kw;
+      var dh=document.createElement('div');
+      dh.className='singer-header'+(collapsed?' collapsed':'');
+      dh.style.cssText='color:#e9a045; font-size:calc(var(--sb-w)*0.1); padding-top:calc(var(--sb-w)*0.08);';
+      dh.innerHTML='<span class="arrow"></span><span>'+dateLabel+'</span><span class="singer-count">'+items.length+'首</span>';
+      dh.addEventListener('click',function(){ collapsedGroups[dateKey]=!collapsedGroups[dateKey]; renderSongList(); });
+      list.appendChild(dh);
+      var wrap=document.createElement('div');
+      wrap.className='singer-songs'+(collapsed?' collapsed':'');
+      items.forEach(function(item){
+        var div=document.createElement('div');
+        div.className='song-item'+(item.idx===currentSongIndex?' active':'');
+        div.style.paddingLeft='calc(var(--sb-w)*0.12)';
+        div.innerHTML='<span class="si-name">'+item.song.name+'</span>';
+        div.addEventListener('click',function(){ selectSong(item.idx); if(isMobile) closeSidebar(); });
+        wrap.appendChild(div);
+      });
+      list.appendChild(wrap);
+    });
+  }
+
+  function selectSong(idx){
+    if(idx===currentSongIndex) return;
+    if(isAutoScrolling){ stopAutoScroll(); }
+    currentSongIndex=idx;
+    var s=songs[idx];
+    var activePages=songPageMap[idx]||[idx];
+    scorePages.forEach(function(p,i){
+      var pos=activePages.indexOf(i);
+      if(pos!==-1){
+        p.classList.add('active');
+        if(activePages.length>1){
+          p.style.setProperty('position','relative','important'); p.style.setProperty('top','auto','important');
+          p.style.setProperty('left','auto','important'); p.style.setProperty('transform','none','important');
+          p.style.setProperty('transform-origin','top center','important'); p.style.setProperty('margin','0 auto 4px auto','important');
+        } else {
+          p.style.setProperty('position','','important'); p.style.setProperty('top','','important');
+          p.style.setProperty('left','','important'); p.style.setProperty('transform','','important');
+          p.style.setProperty('transform-origin','','important'); p.style.setProperty('margin','','important');
+        }
+      } else { p.classList.remove('active');
+        p.style.setProperty('position','','important'); p.style.setProperty('top','','important');
+        p.style.setProperty('left','','important'); p.style.setProperty('transform','','important');
+        p.style.setProperty('transform-origin','','important'); p.style.setProperty('margin','','important');
+      }
+    });
+    if(activePages.length>1){
+      scoreContainer.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;overflow-y:auto;justify-content:flex-start;-webkit-overflow-scrolling:touch;';
+    } else {
+      scoreContainer.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;';
+    }
+    document.getElementById('tbSong').textContent=s.name;
+    document.getElementById('tbInfo').textContent=s.info;
+    renderSongList(); renderAll(); fitToView();
+  }
+
+  function openSidebar(){ sidebar.classList.add('open'); sidebarBackdrop.classList.add('show'); }
+  function closeSidebar(){ sidebar.classList.remove('open'); sidebarBackdrop.classList.remove('show'); }
+  menuBtn.addEventListener('click', openSidebar);
+  sidebarBackdrop.addEventListener('click', closeSidebar);
+  window.addEventListener('resize', function(){ isMobile=window.innerWidth<=768; if(!isMobile) closeSidebar(); setTimeout(fitToView,150); });
+
+  // 平移 / 缩放
+  viewArea.addEventListener('mousedown', function(e){
+    if(currentMode!=='pan'||isDrawing) return;
+    isDragging=true; dragStartX=e.clientX; dragStartY=e.clientY;
+    dragPanStartX=panX; dragPanStartY=panY; viewArea.classList.add('dragging');
+  });
+  window.addEventListener('mousemove', function(e){
+    if(!isDragging) return;
+    panX=dragPanStartX+(e.clientX-dragStartX); panY=dragPanStartY+(e.clientY-dragStartY);
+    viewArea.style.transform='translate('+panX+'px,'+panY+'px)';
+  });
+  window.addEventListener('mouseup', function(){ isDragging=false; viewArea.classList.remove('dragging'); });
+  viewArea.addEventListener('wheel', function(e){
+    e.preventDefault();
+    if(currentMode!=='pan') return;
+    var delta = e.deltaY>0 ? -ZOOM_STEP : ZOOM_STEP;
+    setZoom(currentScale+delta);
+  }, {passive:false});
+
+  function setZoom(z){ currentScale=Math.min(MAX_SCALE,Math.max(MIN_SCALE,z)); zoomLabel.textContent=Math.round(currentScale*100)+'%'; renderAll(); }
+  document.getElementById('btnZoomOut').addEventListener('click',function(){ setZoom(currentScale-ZOOM_STEP); });
+  document.getElementById('btnZoomIn').addEventListener('click',function(){ setZoom(currentScale+ZOOM_STEP); });
+
+  function renderAll(){
+    if(!scoreImage()) return;
+    var w=scoreImage().naturalWidth||100, h=scoreImage().naturalHeight||100;
+    scoreWrapper().style.transform='translate(-50%,-50%) scale('+currentScale+')';
+    viewArea.style.transform='translate('+panX+'px,'+panY+'px)';
+  }
+  function fitToView(){
+    if(!scoreImage()) return;
+    var w=scoreImage().naturalWidth||100, h=scoreImage().naturalHeight||100;
+    var availW=viewArea.clientWidth, availH=viewArea.clientHeight-100;
+    var targetScale=Math.min(availW/w, availH/h, 1.2);
+    currentScale=targetScale; panX=0; panY=0; zoomLabel.textContent=Math.round(currentScale*100)+'%';
+    renderAll();
+  }
+  document.getElementById('btnFill').addEventListener('click', fitToView);
+
+  // 标注
+  btnAnnotate.addEventListener('click', function(){
+    currentMode = currentMode==='annotate' ? 'pan':'annotate';
+    btnAnnotate.classList.toggle('active', currentMode==='annotate');
+    viewArea.classList.toggle('annotate', currentMode==='annotate');
+    if(currentMode==='annotate'){ currentMode='annotate'; }
+  });
+  btnCover.addEventListener('click', function(){
+    currentMode = currentMode==='cover' ? 'pan':'cover';
+    btnCover.classList.toggle('active', currentMode==='cover');
+    viewArea.classList.toggle('cover', currentMode==='cover');
+  });
+
+  // 绘制（标注黄框 / 遮盖白块）
+  viewArea.addEventListener('mousedown', function(e){
+    if(currentMode==='annotate'||currentMode==='cover'){
+      isDrawing=true; drawStartX=e.offsetX; drawStartY=e.offsetY;
+      var svg=highlightLayer(); svg.setAttribute('class','highlight-layer interactive');
+      var rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('x',drawStartX); rect.setAttribute('y',drawStartY);
+      rect.setAttribute('width',0); rect.setAttribute('height',0);
+      rect.setAttribute('class', currentMode==='cover'?'cover-rect':'highlight-rect drawing');
+      svg.appendChild(rect); currentRect=rect;
+    }
+  });
+  viewArea.addEventListener('mousemove', function(e){
+    if(!isDrawing||!currentRect) return;
+    var x=Math.min(drawStartX,e.offsetX), y=Math.min(drawStartY,e.offsetY);
+    var w=Math.abs(e.offsetX-drawStartX), h=Math.abs(e.offsetY-drawStartY);
+    currentRect.setAttribute('x',x); currentRect.setAttribute('y',y);
+    currentRect.setAttribute('width',w); currentRect.setAttribute('height',h);
+  });
+  window.addEventListener('mouseup', function(){
+    if(!isDrawing) return;
+    isDrawing=false; currentRect=null;
+    var svg=highlightLayer(); svg.setAttribute('class','highlight-layer');
+  });
+
+  btnClear.addEventListener('click', function(){
+    highlightLayer().innerHTML='';
+    highlights[currentSongIndex]=[]; covers[currentSongIndex]=[];
+  });
+
+  // 自动下滑
+  btnAutoScroll.addEventListener('click', function(){
+    if(isAutoScrolling){ stopAutoScroll(); btnAutoScroll.textContent='▼ 下滑'; btnAutoScroll.style.background='rgba(76,175,80,0.7)'; }
+    else { isAutoScrolling=true; btnAutoScroll.textContent='■ 停止'; btnAutoScroll.style.background='#e9a045';
+      var speed=parseFloat(scrollSpeedSelect.value);
+      scoreContainer.scrollTop=0;
+      var start=null;
+      var step=function(ts){
+        if(!isAutoScrolling) return;
+        if(!start) start=ts;
+        scoreContainer.scrollTop += speed*0.35;
+        if(scoreContainer.scrollTop + scoreContainer.clientHeight < scoreContainer.scrollHeight) requestAnimationFrame(step);
+        else { stopAutoScroll(); btnAutoScroll.textContent='▼ 下滑'; btnAutoScroll.style.background='rgba(76,175,80,0.7)'; }
+      };
+      requestAnimationFrame(step);
+    }
+  });
+  function stopAutoScroll(){ isAutoScrolling=false; }
+
+  // 标题栏隐藏
+  document.getElementById('btnHideTitle').addEventListener('click', function(){
+    document.getElementById('titleBar').classList.add('hidden');
+    document.getElementById('btnShowTitle').classList.add('visible');
+  });
+
+  // ========== 直播回放 ==========
+  document.getElementById('replayBtn').addEventListener('click', openVideoList);
+  document.getElementById('mobileReplayBtn').addEventListener('click', openVideoList);
+  function openVideoList(){
+    var scroll=document.getElementById('videoListScroll'); scroll.innerHTML='';
+    replays.forEach(function(r){
+      var d=document.createElement('div'); d.className='video-item';
+      d.innerHTML='<div class="vi-name">'+r.name+'</div><div class="vi-meta">'+r.date+'</div>';
+      d.addEventListener('click', function(){ playVideo(r); closeVideoList(); });
+      scroll.appendChild(d);
+    });
+    document.getElementById('videoListPanel').classList.add('open');
+  }
+  function closeVideoList(){ document.getElementById('videoListPanel').classList.remove('open'); }
+  function playVideo(r){
+    document.getElementById('videoTitle').textContent=r.name;
+    document.getElementById('videoFrame').src='https://player.bilibili.com/player.html?bvid='+r.bv+'&page=1&high_quality=1&danmaku=0';
+    document.getElementById('videoModal').classList.add('open');
+  }
+  function closeVideo(){ document.getElementById('videoModal').classList.remove('open'); document.getElementById('videoFrame').src=''; }
+
+  // 初始
+  fitToView();
+  renderSongList();
+</script>
+</body>
+</html>
