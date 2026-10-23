@@ -92,6 +92,8 @@
   .title-bar.hidden { opacity:0; transform:translateY(-100%); pointer-events:none; }
   .title-bar .tb-song { font-size:22px; font-weight:700; color:#fff; letter-spacing:2px; text-shadow:0 1px 4px rgba(0,0,0,0.5); }
   .title-bar .tb-info { font-size:13px; color:rgba(255,255,255,0.75); text-shadow:0 1px 3px rgba(0,0,0,0.5); }
+  .download-btn { pointer-events:auto; position:absolute; right:48px; top:8px; height:28px; padding:0 12px; border:none; border-radius:15px; background:rgba(233,160,69,0.85); color:#fff; font-size:12px; font-weight:600; cursor:pointer; display:none; align-items:center; gap:4px; }
+  .download-btn.visible { display:flex; }
   .tb-toggle { pointer-events:auto; position:absolute; right:12px; top:10px; width:28px; height:28px; border:none; border-radius:50%; background:rgba(255,255,255,0.15); color:rgba(255,255,255,0.8); font-size:13px; cursor:pointer; }
   .show-title-btn { position:absolute; top:8px; right:8px; z-index:19; height:30px; padding:0 14px; border:none; border-radius:15px; background:rgba(0,0,0,0.55); color:rgba(255,255,255,0.85); font-size:12px; cursor:pointer; display:none; align-items:center; }
 
@@ -180,6 +182,7 @@
       <div class="title-bar" id="titleBar">
         <span class="tb-song" id="tbSong">—</span>
         <span class="tb-info" id="tbInfo"></span>
+        <a class="download-btn" id="downloadBtn" href="" download>下载原版PDF</a>
         <button class="tb-toggle" id="btnHideTitle" title="隐藏歌名栏">▾</button>
       </div>
       <div class="score-container" id="scoreContainer"></div>
@@ -225,12 +228,12 @@
   // ========== 曲谱数据（多页曲谱用 files 数组）==========
   var songs = [
     { singer: '羽如老师', date: '2026-10-20', name: '祝福祖国',
-      info: '清风 词 · 孟庆云 曲', files: [
+      info: '清风 词 · 孟庆云 曲', pdf: 'score/zfgz.pdf', files: [
         'score/zfgz_1.png','score/zfgz_2.png','score/zfgz_3.png','score/zfgz_4.png','score/zfgz_5.png',
         'score/zfgz_6.png','score/zfgz_7.png','score/zfgz_8.png','score/zfgz_9.png','score/zfgz_10.png','score/zfgz_11.png'
       ]},
     { singer: '羽如老师', date: '2026-10-13', name: '我爱你塞北的雪',
-      info: '王德 词 · 刘锡津 曲', files: [
+      info: '王德 词 · 刘锡津 曲', pdf: 'score/sbdx.pdf', files: [
         'score/sbdx_1.png','score/sbdx_2.png','score/sbdx_3.png','score/sbdx_4.png','score/sbdx_5.png',
         'score/sbdx_6.png','score/sbdx_7.png','score/sbdx_8.png','score/sbdx_9.png','score/sbdx_10.png','score/sbdx_11.png'
       ]}
@@ -367,6 +370,8 @@
     }
     document.getElementById('tbSong').textContent=s.name;
     document.getElementById('tbInfo').textContent=s.info;
+    var db=document.getElementById('downloadBtn');
+    if(s.pdf){ db.href=s.pdf; db.classList.add('visible'); } else { db.classList.remove('visible'); }
     renderSongList(); renderAll(); fitToView();
   }
 
